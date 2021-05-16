@@ -22,7 +22,7 @@ typedef enum GameResult_t {
 
 
 
-Game gameCreate(int first_player, int second_player, Winner game_winner,int play_time);
+Game gameCreate(int first_player, int second_player, Winner game_winner, int play_time);
 void gameDestroy(Game game);
 
 /*Get*/
@@ -44,17 +44,5 @@ MapKeyElement copyGameIdFunc(MapKeyElement game_id);
 void freeGameFunc(MapDataElement game);
 void freeGameIdFunc(MapKeyElement game_id);
 int compareGameId(MapKeyElement game_id_1, MapKeyElement game_id_2);
-
-
-
-
-
-
-
-
-
-
-
-
 
 #endif /* GAME_H_ */

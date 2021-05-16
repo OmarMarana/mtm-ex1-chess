@@ -1,5 +1,7 @@
+#include <stdlib.h>
 #include "tournament.h"
 #include "game.h"
+#include "player.h"
 
 
 struct tournament_t
@@ -11,12 +13,6 @@ struct tournament_t
     int tournament_winner;
     Map game_list;
 };
-
-
-
-
-
-
 
 Tournament tournamentCreate(int tournament_id, char* tournament_location, int max_games_per_player)
 {
@@ -37,6 +33,8 @@ Tournament tournamentCreate(int tournament_id, char* tournament_location, int ma
     tour_to_create->id = tournament_id;
     tour_to_create->location = tournament_location;
     tour_to_create->max_games_per_player = max_games_per_player;
-    tour_to_create->tournament_winner = NULL;
+    tour_to_create->tournament_winner = PLAYER_INVALID_ID;
     tour_to_create->game_list = games;
+
+    return tour_to_create;
 }

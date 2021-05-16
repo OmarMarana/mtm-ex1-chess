@@ -2,9 +2,6 @@
 #include <stdlib.h>
 
 
-
-
-
 struct Game_t
 {
     int first_player;
@@ -28,8 +25,8 @@ MapDataElement copyGameFunc(MapDataElement game)
     int second = gameGetSecondPlayer((Game)game);
     Winner winner = gameGetWinner((Game)game);
     int play_time = gameGetPlayTime((Game)game);
-      
-    return gameCreate(first, second, winner, game);
+    
+    return gameCreate(first, second, winner, play_time);
 }
 
 MapKeyElement copyGameIdFunc(MapKeyElement game_id)

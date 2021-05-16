@@ -43,17 +43,8 @@ static int compareInts(MapKeyElement n1, MapKeyElement n2) {
     return (*(int *) n1 - *(int *) n2);
 }
 
-
-
-
 int main()
 {
-    /* Map mapCreate(copyMapDataElements copyDataElement,
-              copyMapKeyElements copyKeyElement,
-              freeMapDataElements freeDataElement,
-              freeMapKeyElements freeKeyElement,
-              compareMapKeyElements compareKeyElements); */
-
     Map my_map = mapCreate(copyDataChar, copyKeyInt,
                            freeInt, freeChar, compareInts);
 
