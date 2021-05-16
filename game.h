@@ -39,11 +39,11 @@ Winner gameSetWinner(Game game, Winner game_winner);
 int gameSetPlayTime(Game game,int play_time);
 
 
-MapDataElement copyGameFunc(MapDataElement a);
-MapKeyElement copyGameIdFunc(MapKeyElement a);
-void freeGameFunc(MapDataElement a);
-void freeGameIdFunc(MapKeyElement a);
-int compareGameId(MapKeyElement a, MapKeyElement b);
+MapDataElement copyGameFunc(MapDataElement game);
+MapKeyElement copyGameIdFunc(MapKeyElement game_id);
+void freeGameFunc(MapDataElement game);
+void freeGameIdFunc(MapKeyElement game_id);
+int compareGameId(MapKeyElement game_id_1, MapKeyElement game_id_2);
 
 
 

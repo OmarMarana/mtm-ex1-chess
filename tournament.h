@@ -11,7 +11,7 @@ typedef struct tournament_t *Tournament;
 /* Functions declarations */
 /* ********************** */
 
-Tournament tournamentCreate(int t_id, char* t_location, int max_games_per_player);
+Tournament tournamentCreate(Tournament t, int t_id, char* t_location, int max_games_per_player);
 void tournamentDestroy(Tournament t);
 
 
