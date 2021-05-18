@@ -12,7 +12,7 @@ typedef struct tournament_t *Tournament;
 /* Functions declarations */
 /* ********************** */
 
-Tournament tournamentCreate(int t_id, char* t_location, int max_games_per_player);
+Tournament tournamentCreate(int t_id, const char* t_location, int max_games_per_player);
 void tournamentDestroy(Tournament tournament);
 
 
@@ -31,7 +31,7 @@ void tournamentSetWinnderId(Tournament tournament, int winner_id);
 /* ********************** */
 int tournamentGetId(Tournament tournament);
 int tournamentGetMaxGames(Tournament tournament);
-char* tournamentGetLocation(Tournament tournament);
+const char* tournamentGetLocation(Tournament tournament);
 bool tournamentGetFinishedState(Tournament tournament);
 Map tournamentGetGames(Tournament tournament);
 int tournamentGetWinnderId(Tournament tournament);

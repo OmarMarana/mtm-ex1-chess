@@ -1,9 +1,8 @@
 CC = gcc
-OBJS = chessSystem.o game.o player.o map.o node.o tournament.o
+OBJS = chessSystem.o player.o map.o node.o tournament.o# game.o
 EXEC = chessEXE
 DEBUG_FLAG = -pedantic-errors -DNDEBUG
 COMP_FLAG = -std=c99 -Wall -Werror
-
 
 $(EXEC) : $(OBJS)
 	$(CC) $(DEBUG_FLAG) $(OBJS) -o $@
@@ -14,8 +13,8 @@ chessSystem.o : chessSystem.c chessSystem.h map.h
 player.o : player.c player.h
 	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
 
-game.o : game.c game.h chessSystem.h map.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+#game.o : game.c game.h chessSystem.h map.h
+#	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
 
 tournament.o : tournament.c tournament.h game.h map.h
 	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c

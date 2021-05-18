@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include "chessSystem.h"
 #include "map.h"
 #include "tournament.h"
@@ -11,12 +12,30 @@
 #define FIRST_NON_CAPITAL_LETTER 'a'
 #define LAST_NON_CAPITAL_LETTER 'z'
 
+
+//Colors for debugging.......
+#define ANSI_COLOR_RED     "\x1b[31m"
+#define ANSI_COLOR_GREEN   "\x1b[32m"
+#define ANSI_COLOR_YELLOW  "\x1b[33m"
+#define ANSI_COLOR_BLUE    "\x1b[34m"
+#define ANSI_COLOR_MAGENTA "\x1b[35m"
+#define ANSI_COLOR_CYAN    "\x1b[36m"
+#define ANSI_COLOR_RESET   "\x1b[0m"
+//end colors
+
+
+
 struct chess_system_t
 {
     Map tournaments;
     Map players;
 };
 
+
+/* ******************************************* */
+/* SELF TEST FUNCTION * ONLY FOR DEBUGGING     */
+/* ******************************************* */
+static void selfTest_addTournament(ChessSystem my_chess, int id, int maxGames, const char* loc);
 
 /* ******************************************* */
 /* copy/free/compare functions for the Map ADT */
@@ -92,9 +111,14 @@ ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
         return CHESS_INVALID_LOCATION;
     }
 
-    if (mapContains(chess->tournaments, tournament_id))
+    if (mapContains(chess->tournaments, &tournament_id))
     {
         return CHESS_TOURNAMENT_ALREADY_EXISTS;
+    }
+
+    if(max_games_per_player <= 0)
+    {
+        return CHESS_INVALID_MAX_GAMES;
     }
 
     Tournament new_tournament = tournamentCreate(tournament_id, tournament_location, max_games_per_player);
@@ -103,10 +127,8 @@ ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
         return CHESS_OUT_OF_MEMORY;
     }
 
-    MapKeyElement key = copyKeyInt(&tournament_id);
-    MapDataElement data = copyDataTournament(new_tournament);
+    MapResult putResult = mapPut(chess->tournaments, &tournament_id, new_tournament);
 
-    MapResult putResult = mapPut(chess->tournaments, key, data);
     if(putResult != MAP_SUCCESS)
     {
         return CHESS_OUT_OF_MEMORY;
@@ -159,8 +181,6 @@ static bool checkLocationValidation(const char* tournament_location)
 /* else return false */
 static bool checkLetterIfCapital(char letter)
 {
-    if (letter == NULL)
-        return false;
     return (letter >= FIRST_CAPITAL_LETTER && letter <= LAST_CAPITAL_LETTER);
 }
 
@@ -168,8 +188,6 @@ static bool checkLetterIfCapital(char letter)
 /* else return false */
 static bool checkLetterIfNonCapitalOrSpace(char letter)
 {
-    if(letter == NULL)
-        return false;
     return ( (letter >= FIRST_NON_CAPITAL_LETTER && letter <= LAST_NON_CAPITAL_LETTER) ||
              (letter == LOCATION_SPACE_CHAR) );
 }
@@ -201,8 +219,9 @@ static MapDataElement copyDataTournament(MapDataElement element)
     }
 
     int cpy_id = tournamentGetId((Tournament) element);
-    char* cpy_location = tournamentGetLocation((Tournament) element);
+    const char* cpy_location = tournamentGetLocation((Tournament) element);
     int cpy_max_games = tournamentGetMaxGames((Tournament) element);
+
     if(cpy_id <= 0 || cpy_location == NULL || cpy_max_games <= 0 )
     {
         return NULL;
@@ -239,6 +258,8 @@ static MapDataElement copyDataPlayer(MapDataElement element)
         return NULL;
     }
 
+    playerSetLevel(copy, cpy_level);
+
     return copy;
 }
 
@@ -270,5 +291,82 @@ static int compareInts(MapKeyElement element1, MapKeyElement element2)
 
 int main()
 {
+    printf(ANSI_COLOR_BLUE "Test started...\n" ANSI_COLOR_RESET);
+
+    ChessSystem my_chess;
+    my_chess = chessCreate();
+    if(my_chess == NULL)
+    {
+        printf(ANSI_COLOR_RED "couldn't create chess system! - FAIL!\n" ANSI_COLOR_RESET);
+        return 0;
+        
+    }
+    else
+    {
+        printf(ANSI_COLOR_GREEN "Chess System Created successfully.\n" ANSI_COLOR_RESET);
+    }
+
+    selfTest_addTournament(my_chess, 7, 1, "Haifa technion");
+
+    printf("trying to add another tournament, with SAME id...\n");
+
+    selfTest_addTournament(my_chess, 7, 7, "Bear sheva");
+
+    printf("trying to add another tournament, with DIFFERENT id...\n");
+
+    selfTest_addTournament(my_chess, 1, 8, "Bear sheva");
+
+    selfTest_addTournament(my_chess, 5, 8, "Bear sheva");
+
+    selfTest_addTournament(my_chess, 2, 8, "Bear sheva");
+
+    printf("Printing all tournament's id:\n");
+
+    int i = 1;
+    MAP_FOREACH(int*, iterator, my_chess->tournaments)
+    {
+        printf("tournament #%d, id = %d\n", i, *( ((int*)iterator) ));
+        i++;
+    }
+
+
+
+    printf(ANSI_COLOR_BLUE "TEST FINISHED!\n" ANSI_COLOR_RESET);
     return 0;
+}
+
+static void selfTest_addTournament(ChessSystem my_chess, int id, int maxGames, const char* loc)
+{
+    ChessResult tour_add_rslt = chessAddTournament(my_chess, id, maxGames, loc);
+
+    switch (tour_add_rslt)
+    {
+    case CHESS_SUCCESS:
+            printf(ANSI_COLOR_GREEN "Tournament Added successfully. id = %d", id);
+            printf("\n" ANSI_COLOR_RESET);
+        break;
+    case CHESS_NULL_ARGUMENT:
+        printf(ANSI_COLOR_RED "Error! NULL argument.\n" ANSI_COLOR_RESET);
+    break;
+
+        case CHESS_INVALID_ID:
+        printf(ANSI_COLOR_RED "Error! invalid id.\n" ANSI_COLOR_RESET);
+    break;
+
+        case CHESS_INVALID_LOCATION:
+        printf(ANSI_COLOR_RED "Error! invalid location.\n" ANSI_COLOR_RESET);
+    break;
+
+    case CHESS_INVALID_MAX_GAMES:
+        printf( ANSI_COLOR_RED "Error! invalid max games per player.\n" ANSI_COLOR_RESET);
+    break;
+
+    case CHESS_TOURNAMENT_ALREADY_EXISTS:
+        printf(ANSI_COLOR_RED "Error! tournament already exists.\n" ANSI_COLOR_RESET);
+    break;
+
+    default:
+        printf(ANSI_COLOR_RED "Error! default error code!!!.\n" ANSI_COLOR_RESET);
+        break;
+    }
 }

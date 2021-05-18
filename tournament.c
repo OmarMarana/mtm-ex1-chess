@@ -8,13 +8,13 @@ struct tournament_t
 {
     int id;
     int max_games_per_player;
-    char* location;
+    const char* location;
     bool finished;
     int tournament_winner_id;
     Map game_list;
 };
 
-Tournament tournamentCreate(int tournament_id, char* tournament_location, int max_games_per_player)
+Tournament tournamentCreate(int tournament_id, const char* tournament_location, int max_games_per_player)
 {
     if(tournament_id <= 0 || tournament_location == NULL || max_games_per_player <= 0)
     {
@@ -22,9 +22,9 @@ Tournament tournamentCreate(int tournament_id, char* tournament_location, int ma
     }
 
     Tournament tour_to_create = malloc(sizeof(*tour_to_create));
-    Map games = mapCreate(copyGameFunc, copyGameIdFunc, freeGameFunc, freeGameIdFunc, compareGameId);
+ //   Map games = NULL;//mapCreate(copyGameFunc, copyGameIdFunc, freeGameFunc, freeGameIdFunc, compareGameId);
 
-    if(tour_to_create == NULL || games == NULL)
+    if(tour_to_create == NULL)// || games == NULL)
     {
         return NULL;
     }
@@ -34,7 +34,7 @@ Tournament tournamentCreate(int tournament_id, char* tournament_location, int ma
     tour_to_create->location = tournament_location;
     tour_to_create->max_games_per_player = max_games_per_player;
     tour_to_create->tournament_winner_id = PLAYER_INVALID_ID;
-    tour_to_create->game_list = games;
+    //tour_to_create->game_list = NULL//games;
 
     return tour_to_create;
 }
@@ -127,11 +127,11 @@ int tournamentGetMaxGames(Tournament tournament)
     return tournament->max_games_per_player;
 }
 
-char* tournamentGetLocation(Tournament tournament)
+const char* tournamentGetLocation(Tournament tournament)
 {
     if(tournament == NULL)
     {
-        return TOURNAMENT_NULL_ARGUMENT;
+        return NULL;
     }
 
     return tournament->location;
@@ -141,7 +141,7 @@ bool tournamentGetFinishedState(Tournament tournament)
 {
     if(tournament == NULL)
     {
-        return TOURNAMENT_NULL_ARGUMENT;
+        return false;
     }
 
     return tournament->finished;
@@ -151,7 +151,7 @@ Map tournamentGetGames(Tournament tournament)
 {
     if(tournament == NULL)
     {
-        return TOURNAMENT_NULL_ARGUMENT;
+        return NULL;
     }
 
     return tournament->game_list;
