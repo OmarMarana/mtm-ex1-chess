@@ -1,8 +1,15 @@
-#include <stdlib.h>
+#include <stdio.h>
 #include "chessSystem.h"
 #include "map.h"
 #include "tournament.h"
 #include "player.h"
+#include <string.h>
+
+#define LOCATION_SPACE_CHAR ' '
+#define FIRST_CAPITAL_LETTER 'A'
+#define LAST_CAPITAL_LETTER 'Z'
+#define FIRST_NON_CAPITAL_LETTER 'a'
+#define LAST_NON_CAPITAL_LETTER 'z'
 
 struct chess_system_t
 {
@@ -23,6 +30,21 @@ static MapDataElement copyDataPlayer(MapDataElement element);
 static MapDataElement copyDataTournament(MapDataElement element);
 static MapKeyElement copyKeyInt(MapKeyElement element);
 
+
+
+/* ********************** */
+/* small helper functions */
+/* ********************** */
+
+static bool checkLocationValidation(const char* tournament_location);
+static bool checkLetterIfNonCapitalOrSpace(char letter);
+static bool checkLetterIfCapital(char letter);
+
+
+
+/* ************************* */
+/* ChessSystem ADT functions */
+/* ************************* */
 
 ChessSystem chessCreate()
 {
@@ -50,6 +72,106 @@ ChessSystem chessCreate()
     chessSystem->tournaments = tournaments;
 
     return chessSystem;
+}
+
+ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
+                                int max_games_per_player, const char* tournament_location)
+{
+    if(chess == NULL || tournament_location == NULL)
+    {
+        return CHESS_NULL_ARGUMENT;
+    }
+
+    if(tournament_id <= 0)
+    {
+        return CHESS_INVALID_ID;
+    }
+
+    if(checkLocationValidation(tournament_location) == false)
+    {
+        return CHESS_INVALID_LOCATION;
+    }
+
+    if (mapContains(chess->tournaments, tournament_id))
+    {
+        return CHESS_TOURNAMENT_ALREADY_EXISTS;
+    }
+
+    Tournament new_tournament = tournamentCreate(tournament_id, tournament_location, max_games_per_player);
+    if(new_tournament == NULL)
+    {
+        return CHESS_OUT_OF_MEMORY;
+    }
+
+    MapKeyElement key = copyKeyInt(&tournament_id);
+    MapDataElement data = copyDataTournament(new_tournament);
+
+    MapResult putResult = mapPut(chess->tournaments, key, data);
+    if(putResult != MAP_SUCCESS)
+    {
+        return CHESS_OUT_OF_MEMORY;
+    }
+
+    return CHESS_SUCCESS;
+}
+
+
+
+
+/* **************************** */
+/* static functions definitions */
+/* **************************** */
+
+/* if location start's with CAPITAL LETTER followed by non-capital letters - return true 
+ if it's empty - return false 
+ accept spaces made only by the char ' '(defined as LOCATION_SPACE_CHAR). 
+ any other space will return false. */
+static bool checkLocationValidation(const char* tournament_location)
+{
+    if(tournament_location == NULL)
+    {
+        return false;
+    }
+
+    int len = strlen(tournament_location);
+    if(len == 0)
+    {
+        return false;
+    }
+
+    if(!checkLetterIfCapital(tournament_location[0]))
+    {
+        return false;
+    }
+
+    for (int i = 1; i < len; i++)
+    {
+        if(!checkLetterIfNonCapitalOrSpace(tournament_location[i]))
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+/* reutrn true if the letter is a capital letter.*/
+/* else return false */
+static bool checkLetterIfCapital(char letter)
+{
+    if (letter == NULL)
+        return false;
+    return (letter >= FIRST_CAPITAL_LETTER && letter <= LAST_CAPITAL_LETTER);
+}
+
+/* reutrn true if the letter is a non-capital letter OR is a space*/
+/* else return false */
+static bool checkLetterIfNonCapitalOrSpace(char letter)
+{
+    if(letter == NULL)
+        return false;
+    return ( (letter >= FIRST_NON_CAPITAL_LETTER && letter <= LAST_NON_CAPITAL_LETTER) ||
+             (letter == LOCATION_SPACE_CHAR) );
 }
 
 /** Function to be used for copying an int as a key to the map */
