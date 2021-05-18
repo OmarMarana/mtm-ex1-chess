@@ -7,60 +7,67 @@ struct Player_t
     double level;
 };
 
-Player playerCreate(int p_id)
+Player playerCreate(int player_id)
 {
     Player new_player = malloc(sizeof(*new_player));
-    if(new_player == NULL || p_id > 0)
+    if(new_player == NULL || player_id <= 0)
     {
         return NULL;
     }
 
-    new_player->id = p_id;
+    new_player->id = player_id;
     new_player->level = 0;
 
     return new_player;
 }
 
-void playerDestroy(Player p)
+void playerDestroy(Player player)
 {
-    free(p);
+    free(player);
 }
 
-/* SETs */
-void playerSetId(Player p, int id)
+
+/* ********************** */
+/* ******** SET ********* */
+/* ********************** */
+
+void playerSetId(Player player, int id)
 {
-    if(p == NULL || id <= 0)
+    if(player == NULL || id <= 0)
     {
         return;
     }
-    p->id = id;
+    player->id = id;
 }
 
-void playerSetLevel(Player p, double level)
+void playerSetLevel(Player player, double level)
 {
-    if(p == NULL)
+    if(player == NULL)
     {
         return;
     }
-    p->level = level;
+    player->level = level;
 }
 
 
-/* GETs */
-int playerGetId(Player p)
+/* ********************** */
+/* ******** GET ********* */
+/* ********************** */
+
+int playerGetId(Player player)
 {
-    if(p == NULL)
+    if(player == NULL)
     {
         return PLAYER_NULL_ARGUMENT;
     }
-    return p->id;
+    return player->id;
 }
 
-double playerGetLevel(Player p)
+double playerGetLevel(Player player)
 {
-    if(p == NULL)
+    if(player == NULL)
     {
         return PLAYER_NULL_ARGUMENT;
     }
-    return p->level;
+    return player->level;
 }

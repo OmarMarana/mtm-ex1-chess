@@ -8,16 +8,16 @@ typedef struct Player_t *Player;
 
 
 
-Player playerCreate(int p_id);
-void playerDestroy(Player p);
+Player playerCreate(int player_id);
+void playerDestroy(Player player);
 
 /* SET */
-void playerSetId(Player p, int id);
-void playerSetLevel(Player p, double level);
+void playerSetId(Player player, int id);
+void playerSetLevel(Player player, double level);
 
 
 /* GET */
-int playerGetId(Player p);
-double playerGetLevel(Player p);
+int playerGetId(Player player);
+double playerGetLevel(Player player);
 
 #endif
