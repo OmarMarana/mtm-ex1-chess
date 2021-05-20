@@ -166,3 +166,18 @@ int tournamentGetWinnderId(Tournament tournament)
 
     return tournament->tournament_winner_id;
 }
+
+int tournamentGetGamesPlayed(Tournament tournament)
+{
+    if(tournament == NULL)
+    {
+        return TOURNAMENT_NULL_ARGUMENT;
+    }
+
+    if(tournament->game_list == NULL)
+    {
+        return 0;
+    }
+
+    return mapGetSize(tournament->game_list);
+}

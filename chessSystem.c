@@ -1,10 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "chessSystem.h"
 #include "map.h"
 #include "tournament.h"
 #include "player.h"
-#include <string.h>
+#include "game.h"
 
 #define LOCATION_SPACE_CHAR ' '
 #define FIRST_CAPITAL_LETTER 'A'
@@ -13,6 +14,7 @@
 #define LAST_NON_CAPITAL_LETTER 'z'
 
 
+/*REMOVE BEFORE SUBMIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 //Colors for debugging.......
 #define ANSI_COLOR_RED     "\x1b[31m"
 #define ANSI_COLOR_GREEN   "\x1b[32m"
@@ -23,8 +25,7 @@
 #define ANSI_COLOR_RESET   "\x1b[0m"
 //end colors
 
-
-
+/* Struct definition */
 struct chess_system_t
 {
     Map tournaments;
@@ -36,6 +37,8 @@ struct chess_system_t
 /* SELF TEST FUNCTION * ONLY FOR DEBUGGING     */
 /* ******************************************* */
 static void selfTest_addTournament(ChessSystem my_chess, int id, int maxGames, const char* loc);
+
+
 
 /* ******************************************* */
 /* copy/free/compare functions for the Map ADT */
@@ -58,6 +61,7 @@ static MapKeyElement copyKeyInt(MapKeyElement element);
 static bool checkLocationValidation(const char* tournament_location);
 static bool checkLetterIfNonCapitalOrSpace(char letter);
 static bool checkLetterIfCapital(char letter);
+static void setOpponentTheWinner(Game game, int player_id);
 
 
 
@@ -137,12 +141,145 @@ ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
     return CHESS_SUCCESS;
 }
 
+ChessResult chessRemoveTournament (ChessSystem chess, int tournament_id)
+{
+    if(chess == NULL)
+    {
+        return CHESS_NULL_ARGUMENT;
+    }
+
+    if(tournament_id <= 0)
+    {
+        return CHESS_INVALID_ID;
+    }
+    
+    Tournament tournament_to_remove = mapGet(chess->tournaments, &tournament_id);
+    if(tournament_to_remove == NULL)
+    {
+        return CHESS_TOURNAMENT_NOT_EXIST;
+    }
+
+    /* Remove all of the games in the tournament */
+    mapDestroy(tournamentGetGames(tournament_to_remove));
+    
+    /* Remove the tournament from the list and deallocate the memory. */
+    MapResult remove_result = mapRemove(chess->tournaments, &tournament_id);
+
+    return CHESS_SUCCESS;
+}
+
+ChessResult chessRemovePlayer(ChessSystem chess, int player_id)
+{
+    if(chess == NULL)
+    {
+        return CHESS_NULL_ARGUMENT;
+    }
+
+    if(player_id <= 0)
+    {
+        return CHESS_INVALID_ID;
+    }
+
+    if(!mapContains(chess->players, &player_id))
+    {
+        return CHESS_PLAYER_NOT_EXIST;
+    }
 
 
+    int current_tournament_id = 0;
+    MAP_FOREACH(int*, tournament_iterator, chess->tournaments)
+    {
+        current_tournament_id =  *tournament_iterator;
+        Tournament current_tournament = mapGet(chess->tournaments, &current_tournament_id);
+        if(tournamentGetFinishedState(current_tournament) == true)
+        {
+            continue;            
+        }
+        
+        int current_game_id = 0;
+        MAP_FOREACH(int*, game_iterator, tournamentGetGames(current_tournament))
+        {
+            current_game_id = *game_iterator;
+            Game current_game = mapGet(tournamentGetGames(current_tournament), &current_game_id);
+
+            setOpponentTheWinner(current_game, player_id);
+        }
+    }
+
+    mapRemove(chess->players, &player_id);
+
+    return CHESS_SUCCESS;
+}
+
+ChessResult chessEndTournament(ChessSystem chess, int tournament_id)
+{
+    if(chess == NULL)
+    {
+        return CHESS_NULL_ARGUMENT;
+    }
+
+    if(tournament_id <= 0)
+    {
+        return CHESS_INVALID_ID;
+    }
+
+    Tournament current_tournament = mapGet(chess->tournaments, &tournament_id);
+    if(current_tournament == NULL)
+    {
+        return CHESS_TOURNAMENT_NOT_EXIST;
+    }
+
+    if(tournamentGetFinishedState(current_tournament))
+    {
+        return CHESS_TOURNAMENT_ENDED;
+    }
+
+    if(mapGetSize(tournamentGetGames(current_tournament)) <= 0)
+    {
+        return CHESS_NO_GAMES;
+    }
+
+    int winner_id = calcWinnerId(current_tournament);
+
+    tournamentSetWinnderId(current_tournament, winner_id);
+    tournamentSetFinishedState(current_tournament, true);
+
+    return CHESS_SUCCESS;
+}
 
 /* **************************** */
-/* static functions definitions */
+/* helper functions definitions */
 /* **************************** */
+
+
+static int calcWinnerId(Tournament tournament)
+{
+    MAP_FOREACH(int*, games_iterator, tournamentGetGames(tournament))
+    {
+        
+    }
+    return 0;
+}
+
+/* set the opponent of the player(with 'player_id' id) the winner of the game.
+   if the player didn't play in the game, nothing will change. */
+static void setOpponentTheWinner(Game game, int player_id)
+{
+    if(game == NULL || player_id <= 0)
+    {
+        return;
+    }
+
+    if(gameGetFirstPlayer(game) == player_id)
+    {
+        gameSetWinner(game, SECOND_PLAYER);
+    }
+
+    if(gameGetSecondPlayer(game) == player_id)
+    {
+        gameSetWinner(game, FIRST_PLAYER);
+    }
+}
 
 /* if location start's with CAPITAL LETTER followed by non-capital letters - return true 
  if it's empty - return false 

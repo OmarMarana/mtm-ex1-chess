@@ -167,8 +167,10 @@ void mapDestroy(Map map)
         return;
     }
 
-    nodeDestroy(map->elements_pair, map->freeDataFucntion, map->freeKeyFucntion);
-
+    /*nodeDestroy(map->elements_pair, map->freeDataFucntion, map->freeKeyFucntion); */
+    
+    /*Yonatan's fix: */
+    mapClear(map);
     free(map);
 }
 
@@ -300,8 +302,6 @@ MapResult mapRemove(Map map, MapKeyElement keyElement)
     map->iterator = ITERATOR_UNDEFINED;
     return MAP_ITEM_DOES_NOT_EXIST;
 }
-
-
 
 
 MapResult mapClear(Map map)

@@ -35,5 +35,6 @@ const char* tournamentGetLocation(Tournament tournament);
 bool tournamentGetFinishedState(Tournament tournament);
 Map tournamentGetGames(Tournament tournament);
 int tournamentGetWinnderId(Tournament tournament);
+int tournamentGetGamesPlayed(Tournament tournament);
 
 #endif
