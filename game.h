@@ -33,10 +33,10 @@ int gameGetPlayTime(Game game);
 
 
 /*Set*/
-int gameSetFirstPlayer(Game game, int first_player);
-int gameSetSecondPlayer(Game game, int second_player);
-Winner gameSetWinner(Game game, Winner game_winner);
-int gameSetPlayTime(Game game,int play_time);
+void gameSetFirstPlayer(Game game, int first_player);
+void gameSetSecondPlayer(Game game, int second_player);
+void gameSetWinner(Game game, Winner game_winner);
+void gameSetPlayTime(Game game,int play_time);
 
 
 MapDataElement copyGameFunc(MapDataElement game);

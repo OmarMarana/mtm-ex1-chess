@@ -25,6 +25,7 @@ void tournamentSetMaxGames(Tournament tournament, int max_games_per_player);
 void tournamentSetLocation(Tournament tournament, char* location);
 void tournamentSetFinishedState(Tournament tournament, bool finished);
 void tournamentSetWinnderId(Tournament tournament, int winner_id);
+void tournamentSetNumDiffPlayers(Tournament tournament, int num_of_players);
 
 /* ********************** */
 /* ******** GET ********* */
@@ -36,5 +37,7 @@ bool tournamentGetFinishedState(Tournament tournament);
 Map tournamentGetGames(Tournament tournament);
 int tournamentGetWinnderId(Tournament tournament);
 int tournamentGetGamesPlayed(Tournament tournament);
+int tournamentGetNumDiffPlayers(Tournament tournament);
+
 
 #endif

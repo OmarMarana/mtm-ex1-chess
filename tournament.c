@@ -11,6 +11,7 @@ struct tournament_t
     const char* location;
     bool finished;
     int tournament_winner_id;
+    int num_different_players;
     Map game_list;
 };
 
@@ -101,7 +102,15 @@ void tournamentSetWinnderId(Tournament tournament, int winner_id)
     tournament->tournament_winner_id = winner_id;
 }
 
+void tournamentSetNumDiffPlayers(Tournament tournament, int num_of_players)
+{
+    if(tournament == NULL || num_of_players < 0)
+    {
+        return;
+    }
 
+    tournament->num_different_players = num_of_players;
+}
 
 /* ********************** */
 /* ******** GET ********* */
@@ -180,4 +189,14 @@ int tournamentGetGamesPlayed(Tournament tournament)
     }
 
     return mapGetSize(tournament->game_list);
+}
+
+int tournamentGetNumDiffPlayers(Tournament tournament)
+{
+    if(tournament == NULL)
+    {
+        return TOURNAMENT_NULL_ARGUMENT;
+    }
+
+    return tournament->num_different_players;
 }

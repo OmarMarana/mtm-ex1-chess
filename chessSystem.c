@@ -12,7 +12,18 @@
 #define LAST_CAPITAL_LETTER 'Z'
 #define FIRST_NON_CAPITAL_LETTER 'a'
 #define LAST_NON_CAPITAL_LETTER 'z'
+#define WIN_POINTS 2
+#define DRAW_POINTS 1
+#define PLAYER_STATS_COLS 5
 
+typedef enum
+{
+    PLAYER_ID_COL = 0,
+    PLAYER_POINTS_COL,
+    PLAYER_LOSSES_COL,
+    PLAYER_WINS_COL,
+    PLAYER_DRAWS_COL
+} PlayerStatsColumn;
 
 /*REMOVE BEFORE SUBMIT !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! */
 //Colors for debugging.......
@@ -62,6 +73,7 @@ static bool checkLocationValidation(const char* tournament_location);
 static bool checkLetterIfNonCapitalOrSpace(char letter);
 static bool checkLetterIfCapital(char letter);
 static void setOpponentTheWinner(Game game, int player_id);
+static void sortMatrixByCol(int** mat, int len, int col, bool increasing);
 
 
 
@@ -96,6 +108,16 @@ ChessSystem chessCreate()
 
     return chessSystem;
 }
+
+
+ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
+                         int second_player, Winner winner, int play_time)
+{
+    
+    
+
+}
+
 
 ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
                                 int max_games_per_player, const char* tournament_location)
@@ -239,7 +261,7 @@ ChessResult chessEndTournament(ChessSystem chess, int tournament_id)
         return CHESS_NO_GAMES;
     }
 
-    int winner_id = calcWinnerId(current_tournament);
+    int winner_id = calcTournamentWinnerId(current_tournament);
 
     tournamentSetWinnderId(current_tournament, winner_id);
     tournamentSetFinishedState(current_tournament, true);
@@ -251,14 +273,302 @@ ChessResult chessEndTournament(ChessSystem chess, int tournament_id)
 /* helper functions definitions */
 /* **************************** */
 
+/* return the id of the tournament winner. */
+static int calcTournamentWinnerId(Tournament tournament)
+{
+    if(tournament == NULL)
+    {
+        return TOURNAMENT_NULL_ARGUMENT;
+    }
 
-static int calcWinnerId(Tournament tournament)
+    int num_of_players = tournamentGetNumDiffPlayers(tournament);
+
+    int** players_info = (int**) malloc(sizeof(int*) * num_of_players);
+    if(players_info == NULL)
+    {
+        return TOURNAMENT_NULL_ARGUMENT;
+    }
+
+    int* hist_of_players_id = malloc(sizeof(*hist_of_players_id) * num_of_players);
+    if(hist_of_players_id == NULL)
+    {
+        free(players_info);
+        return TOURNAMENT_NULL_ARGUMENT;
+    }
+
+    allocatePlayersInfo(players_info, hist_of_players_id, num_of_players);
+    initalizePlayerInfo(players_info, hist_of_players_id, num_of_players);
+    initializeHist(hist_of_players_id, tournament, num_of_players);
+    initializePlayerIdCol(players_info, hist_of_players_id, num_of_players);
+
+    free(hist_of_players_id);
+
+    sumWinLoseDraw(players_info, num_of_players, tournament);
+
+    for (int i = 0; i < num_of_players; i++)
+    {
+        players_info[i][PLAYER_POINTS_COL] = WIN_POINTS * players_info[i][PLAYER_WINS_COL] + 
+                                             DRAW_POINTS * players_info[i][PLAYER_DRAWS_COL];
+    }
+
+    //free mallocations
+    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_POINTS_COL, false) == 1)
+    {
+        freePlayersInfo(players_info, num_of_players);
+        return players_info[0][PLAYER_ID_COL];
+    }
+
+    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_LOSSES_COL, true) == 1)
+    {
+        freePlayersInfo(players_info, num_of_players);
+        return players_info[0][PLAYER_ID_COL];
+    }
+
+    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_WINS_COL, false) == 1)
+    {
+        freePlayersInfo(players_info, num_of_players);
+        return players_info[0][PLAYER_ID_COL];
+    }
+
+    sortMatrixByCol(players_info, num_of_players, PLAYER_ID_COL, true);
+    freePlayersInfo(players_info, num_of_players);
+    return players_info[0][PLAYER_ID_COL];
+}
+
+static void freePlayersInfo(int** players_info, int len)
+{
+    for (int i = 0; i < len; i++)
+    {
+        free(players_info[i]);
+    }
+}
+
+initializePlayerIdCol(int** players_info, int* hist_of_players_id, int num_of_players)
+{
+    for (int i = 0; i < num_of_players; i++)
+    {
+        players_info[i][PLAYER_ID_COL] = hist_of_players_id[i];
+    }
+}
+
+static void initalizePlayerInfo(int** players_info, int* hist_of_players_id, int num_of_players)
+{
+    for (int p = 0; p < num_of_players; p++)
+    {
+        hist_of_players_id[p] = PLAYER_INVALID_ID;
+        for (int i = 0; i < PLAYER_STATS_COLS; i++)
+        {
+            players_info[p][i] = 0;
+        }
+    }
+}
+
+static bool allocatePlayersInfo(int** players_info, int* hist_of_players_id, int num_of_players)
+{
+    for (int i = 0; i < num_of_players; i++)
+    {
+        players_info[i] = malloc(sizeof(int) * PLAYER_STATS_COLS);
+        if(players_info[i] == NULL)
+        {
+            for (int t = 0; t < i; t++)
+            {
+                free(players_info[t]);
+            }
+            free(players_info);
+            free(hist_of_players_id);
+            
+            return false;
+        }
+    }
+    return true;
+}
+
+static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
+{
+    for (int i = 0; i < *len; i++)
+    {
+        for (int t = i+1; t < (*len) - 1; t++)
+        {
+            if(increasing)
+            {
+                if(mat[t][col] >= mat[t+1][col])
+                {
+                    swapRow(mat[t], mat[t+1]);
+                }
+            }
+            else
+            {
+                if(mat[t][col] <= mat[t+1][col])
+                {
+                    swapRow(mat[t], mat[t+1]);
+                }
+            }
+        }
+    }
+
+
+    for (int i = (*len)-1; i >= 0; i--)
+    {
+        if(players_info[i][PLAYER_POINTS_COL] != players_info[0][PLAYER_POINTS_COL])
+        {
+            free(players_info[i]);
+            (*len) = (*len) - 1;
+        }
+    }
+
+    return (*len);
+}
+
+static void swapRow(int* a, int* b)
+{
+    int tmp[PLAYER_STATS_COLS];
+    for (int i = 0; i < PLAYER_STATS_COLS; i++)
+    {
+        tmp[i] = a[i];
+        a[i] = b[i];
+        b[i] = tmp[i];
+    }
+}
+
+static int getFirstIndexOfValue(int* arr, int len, int value)
+{
+    for (int i = 0; i < len; i++)
+    {
+        if(arr[i] == value)
+        {
+            return i;
+        }
+    }
+
+    return PLAYER_INVALID_ID;
+}
+
+static int countSameValueInArr(int* arr, int len, int value)
+{
+    int c = 0;
+    for (int i = 0; i < len; i++)
+    {
+        if(arr[i] == value)
+        {
+            c++;
+        }
+    }
+    
+    return c;
+}
+
+static int getMax(int** players_info, int num_of_players, int col)
+{
+    int max = 0;
+    for (int i = 0; i < num_of_players; i++)
+    {
+        if(players_info[i][col] >= max)
+        {
+            max = players_info[i][col];
+        }
+    }
+    return max;
+}
+
+static void sumWinLoseDraw(int** players_info, int num_of_players, Tournament tournament)
 {
     MAP_FOREACH(int*, games_iterator, tournamentGetGames(tournament))
     {
+        /*int current_game_id = *games_iterator; try to test with this int and without.... */
+        Game current_game = mapGet(tournamentGetGames(tournament), games_iterator);
+
+        int current_first_id = gameGetFirstPlayer(current_game);
+        int current_second_id = gameGetSecondPlayer(current_game);
+        Winner current_winner = gameGetWinner(current_game);
+
+        int hist_index = PLAYER_INVALID_ID;
+        switch (current_winner)
+        {
+        case FIRST_PLAYER:
+
+            hist_index = getHistId(players_info, current_first_id, num_of_players);  //first
+            players_info[hist_index][PLAYER_WINS_COL] ++;
+
+            hist_index = getHistId(players_info, current_second_id, num_of_players); //second
+            players_info[hist_index][PLAYER_LOSSES_COL] ++;
+
+            break;
         
+        case SECOND_PLAYER:
+
+            hist_index = getHistId(players_info, current_second_id, num_of_players);  //second
+            players_info[hist_index][PLAYER_WINS_COL] ++;
+
+            hist_index = getHistId(players_info, current_first_id, num_of_players); //first
+            players_info[hist_index][PLAYER_LOSSES_COL] ++;
+
+            break;
+
+        case DRAW:
+
+            hist_index = getHistId(players_info, current_first_id, num_of_players); //first
+            players_info[hist_index][PLAYER_DRAWS_COL] ++;
+
+            hist_index = getHistId(players_info, current_second_id, num_of_players); //second
+            players_info[hist_index][PLAYER_DRAWS_COL] ++;
+            break;
+
+        default:
+            break;
+        }
     }
-    return 0;
+}
+
+static void initializeHist(int* hist, Tournament tournament, int hist_len)
+{
+    int i = 0;
+    MAP_FOREACH(int*, games_iterator, tournamentGetGames(tournament))
+    {
+        /*int current_game_id = *games_iterator; try to test with this int and without.... */
+        Game current_game = mapGet(tournamentGetGames(tournament), games_iterator);
+        int current_first = gameGetFirstPlayer(current_game);
+        int current_second = gameGetSecondPlayer(current_game);
+
+        if(hist[i] == PLAYER_INVALID_ID)
+        {
+            if(!existInHist(hist, hist_len, current_first))
+            {
+                hist[i] = current_first;
+                i++;
+            }
+
+            if (!existInHist(hist, hist_len, current_second))
+            {
+                hist[i] = current_second;
+                i++;
+            }
+        }  
+    }
+}
+
+static bool existInHist(int* hist, int hist_len, int value)
+{
+    for (int i = 0; i < hist_len; i++)
+    {
+        if(hist[i] == value)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static int getHistId(int** players_info, int player_id, int num_of_players)
+{
+    for (int i = 0; i < num_of_players; i++)
+    {
+        if(players_info[i][PLAYER_ID_COL] == player_id)
+        {
+            return i;
+        }
+    }
+    return PLAYER_INVALID_ID;
 }
 
 /* set the opponent of the player(with 'player_id' id) the winner of the game.
