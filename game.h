@@ -30,7 +30,7 @@ int gameGetFirstPlayer(Game game);
 int gameGetSecondPlayer(Game game);
 Winner gameGetWinner(Game game);
 int gameGetPlayTime(Game game);
-void gameSetId(Game game,int game_id);
+int gameGetId(Game game);
 
 
 /*Set*/

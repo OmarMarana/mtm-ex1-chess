@@ -117,7 +117,54 @@ ChessSystem chessCreate()
     return chessSystem;
 }
 
+/*Should all the games be taken into account?including the games that the player participated
+in before he was removed?
+If we have to take into account only the games from the last time he was added, then how to do it? */
+double chessCalculateAveragePlayTime (ChessSystem chess, int player_id, ChessResult* chess_result)
+{
+    int games_participated_in =0;
+    MAP_FOREACH(int*, tournament_iterator, chess->tournaments)
+    {
+        Tournament tournament = mapGet(chess->tournaments, tournament_iterator);
+        games_participated_in += playerCountGamesInTournament(tournament, player_id);
+    }
 
+    /*Can I use MAP_FOREACH here? I used it above so the iterator status might be
+    undefined... */
+    double average_playtime = 0;
+    MAP_FOREACH(int*, tournament_iterator, chess->tournaments)
+    {
+        Tournament tournament = mapGet(chess->tournaments, tournament_iterator);
+        Map games_list = tournamentGetGames(tournament);
+        
+        MAP_FOREACH(int*, game_id_iterator, games_list)
+        {
+            Game current_game = mapGet(games_list, game_id_iterator);
+            int current_first = gameGetFirstPlayer(current_game);
+            int current_second = gameGetSecondPlayer(current_game);
+            if(playerExistsInGame(current_game, player_id))
+            {
+                average_playtime += gameGetPlayTime(current_game)/games_participated_in;
+            }
+        }
+    }
+    
+    return average_playtime;
+}
+
+static bool playerExistsInGame(Game game, Player player_id)
+{
+    if( player_id == gameGetFirstPlayer(game) || player_id == gameGetSecondPlayer(game))
+    {
+        return true;
+    }
+    return false;
+}
+
+
+
+/*maybe should reset player stats in this function, if he is being added after
+he was removed. Look in page 10 in the pdf in chessRemovePlayer description.*/
 ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
                          int second_player, Winner winner, int play_time)
 {
@@ -158,12 +205,12 @@ ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
     {
         return CHESS_EXCEEDED_GAMES;
     }
-
     
     int new_game_id = tournamentGetGamesPlayed(tournament) + 1;
     Game new_game = gameCreate(first_player, second_player, winner, play_time, new_game_id);
     if(new_game == NULL)
     {
+        gameDestroy(new_game);
         outOfMemoryError(chess);
     }
 
@@ -172,29 +219,83 @@ ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
     {
         outOfMemoryError(chess);
     }
-
-    //***
-    Player p1 = playerCreate(first_player);
-    Player p2 = playerCreate(second_player);
-    if(!mapContains(chess->players, &first_player))
-    {
-        mapPut(chess->players, &first_player, p1);
-    }
-    if(!mapContains(chess->players, &second_player))
-    {
-        mapPut(chess->players, &second_player, p1);
-    }
-    playerDestroy(p1);
-    playerDestroy(p2);
-    //***
-    //addPlayersToPlayersList(); put p1 and p2 into this function...
-    
+   
+    addPlayersToPlayersList(chess, first_player, second_player);
     updateTournamentStats(chess, tournament);
     updatePlayerStats(chess, new_game);
     
 
     return CHESS_SUCCESS;
 }
+
+
+static void addPlayersToPlayersList(ChessSystem chess, Player first_player, Player second_player)
+{
+    if(!mapContains(chess->players, &first_player))
+    {
+        Player player1 = playerCreate(first_player);
+        if(player1 == NULL)
+        {
+            outOfMemoryError(chess);
+        }
+        mapPut(chess->players, &first_player, player1);
+        playerDestroy(player1);
+    }
+    if(!mapContains(chess->players, &second_player))
+    {
+        Player player2 = playerCreate(second_player);
+        if(player2 == NULL)
+        {
+            outOfMemoryError(chess);
+        }
+        mapPut(chess->players, &second_player, player2);
+        playerDestroy(player2);
+    }
+
+}
+
+
+
+/*update player stats in the players map*/
+static void updatePlayerStats(ChessSystem chess,Game game)
+{
+    Map players_list = chess->players;
+    Player player1 = mapGet(players_list, gameGetFirstPlayer(game));
+    Player player2 = mapGet(players_list, gameGetSecondPlayer(game));
+
+    int player1_wins = playerGetGameStatics(player1, PLAYER_WINS);
+    int player1_losses = playerGetGameStatics(player1, PLAYER_LOSSES);
+    int player1_draws = playerGetGameStatics(player1, PLAYER_DRAWS);
+    
+    int player2_wins = playerGetGameStatics(player2, PLAYER_WINS);
+    int player2_losses = playerGetGameStatics(player2, PLAYER_LOSSES);
+    int player2_draws = playerGetGameStatics(player2, PLAYER_DRAWS);
+
+
+    switch (gameGetWinner(game))
+        {
+        case FIRST_PLAYER:
+            playerSetGameStatics(player1, PLAYER_WINS, player1_wins + 1);
+            playerSetGameStatics(player2, PLAYER_LOSSES, player2_losses + 1 );
+            break;
+        
+        case SECOND_PLAYER:
+            playerSetGameStatics(player2, PLAYER_WINS, player2_wins + 1 );
+            playerSetGameStatics(player1, PLAYER_LOSSES, player1_losses + 1 );
+            break;
+
+        case DRAW:
+            playerSetGameStatics(player1, PLAYER_DRAWS, player1_draws + 1);
+            playerSetGameStatics(player2, PLAYER_DRAWS, player2_draws + 1);
+
+        default:
+            break;
+        }
+
+
+}
+
+
 
 /* count how many different players played in the tournament and update 'num_different_players'*/
 static void updateTournamentStats(ChessSystem chess , Tournament tournament)
@@ -216,9 +317,9 @@ static void updateTournamentStats(ChessSystem chess , Tournament tournament)
         hist_players[i] = PLAYER_INVALID_ID;
     }
 
-    int c = initializeHist(hist_players, tournament, max_length);
+    int num_of_players = initializeHist(hist_players, tournament, max_length);
 
-    tournamentSetNumDiffPlayers(tournament, c);
+    tournamentSetNumDiffPlayers(tournament, num_of_players);
 }
 
 static int playerCountGamesInTournament(Tournament tournament, int player_id)
@@ -396,6 +497,7 @@ ChessResult chessRemovePlayer(ChessSystem chess, int player_id)
         }
     }
 
+    /*shouldnt the stats be reset in chessAddgame?*/
     mapRemove(chess->players, &player_id);
 
     return CHESS_SUCCESS;
