@@ -4,11 +4,10 @@
 
 struct Game_t
 {
+    int game_id;
     int first_player;
     int second_player;
-
     Winner game_winner;
-
     int play_time;
 };
 
@@ -115,7 +114,7 @@ int gameGetPlayTime(Game game)
 
 
 /*gameCreate*/
-Game gameCreate(int first_player, int second_player, Winner game_winner, int play_time)
+Game gameCreate(int first_player, int second_player, Winner game_winner, int play_time, int game_id)
 {
     Game new_game = malloc(sizeof(*new_game));
     if(new_game == NULL)
@@ -127,7 +126,8 @@ Game gameCreate(int first_player, int second_player, Winner game_winner, int pla
     new_game->second_player = second_player;
     new_game->game_winner = game_winner;
     new_game->play_time = play_time;
-    
+    new_game->game_id = game_id;
+
     return new_game;
 }
 

@@ -166,10 +166,7 @@ void mapDestroy(Map map)
     {
         return;
     }
-
-    /*nodeDestroy(map->elements_pair, map->freeDataFucntion, map->freeKeyFucntion); */
     
-    /*Yonatan's fix: */
     mapClear(map);
     free(map);
 }

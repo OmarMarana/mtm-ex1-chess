@@ -23,9 +23,9 @@ Tournament tournamentCreate(int tournament_id, const char* tournament_location, 
     }
 
     Tournament tour_to_create = malloc(sizeof(*tour_to_create));
- //   Map games = NULL;//mapCreate(copyGameFunc, copyGameIdFunc, freeGameFunc, freeGameIdFunc, compareGameId);
+    Map games = mapCreate(copyGameFunc, copyGameIdFunc, freeGameFunc, freeGameIdFunc, compareGameId);
 
-    if(tour_to_create == NULL)// || games == NULL)
+    if(tour_to_create == NULL || games == NULL)
     {
         return NULL;
     }
@@ -35,7 +35,7 @@ Tournament tournamentCreate(int tournament_id, const char* tournament_location, 
     tour_to_create->location = tournament_location;
     tour_to_create->max_games_per_player = max_games_per_player;
     tour_to_create->tournament_winner_id = PLAYER_INVALID_ID;
-    //tour_to_create->game_list = NULL//games;
+    tour_to_create->game_list = games;
 
     return tour_to_create;
 }
@@ -110,6 +110,16 @@ void tournamentSetNumDiffPlayers(Tournament tournament, int num_of_players)
     }
 
     tournament->num_different_players = num_of_players;
+}
+
+void tournamentSetGameList(Tournament tournament, Map games)
+{
+    if(tournament == NULL || games < 0)
+    {
+        return;
+    }
+
+    tournament->game_list = games;
 }
 
 /* ********************** */

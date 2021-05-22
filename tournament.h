@@ -26,6 +26,7 @@ void tournamentSetLocation(Tournament tournament, char* location);
 void tournamentSetFinishedState(Tournament tournament, bool finished);
 void tournamentSetWinnderId(Tournament tournament, int winner_id);
 void tournamentSetNumDiffPlayers(Tournament tournament, int num_of_players);
+void tournamentSetGameList(Tournament tournament, Map games);
 
 /* ********************** */
 /* ******** GET ********* */
