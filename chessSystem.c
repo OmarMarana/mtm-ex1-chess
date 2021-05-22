@@ -113,10 +113,33 @@ ChessSystem chessCreate()
 ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
                          int second_player, Winner winner, int play_time)
 {
+    if(chess == NULL)
+    {
+        return CHESS_NULL_ARGUMENT;
+    }
+    
+    if(tournament_id <=0  || first_player <=0 || second_player <=0 || first_player == second_player || )
+
     
     
 
 }
+
+
+void chessDestroy(ChessSystem chess)
+{
+    if(chess == NULL)
+    {
+        return;
+    }
+    
+    mapDestroy(chess->tournaments);
+    mapDestroy(chess->players);
+
+    free(chess);
+
+}
+
 
 
 ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
@@ -409,9 +432,9 @@ static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
 
     for (int i = (*len)-1; i >= 0; i--)
     {
-        if(players_info[i][PLAYER_POINTS_COL] != players_info[0][PLAYER_POINTS_COL])
+        if(mat[i][PLAYER_POINTS_COL] != mat[0][PLAYER_POINTS_COL])
         {
-            free(players_info[i]);
+            free(mat[i]);
             (*len) = (*len) - 1;
         }
     }
@@ -720,6 +743,8 @@ static void freeInt(MapKeyElement element)
 static void freeTournament(MapKeyElement element)
 {
     tournamentDestroy(element);
+    
+    //free is done in tournamentDestroy, shouldnt free twice 
     free(element);
 }
 
