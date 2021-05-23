@@ -73,7 +73,7 @@ static bool checkLocationValidation(const char* tournament_location);
 static bool checkLetterIfNonCapitalOrSpace(char letter);
 static bool checkLetterIfCapital(char letter);
 static void setOpponentTheWinner(Game game, int player_id);
-static int sortMatrixByCol(int** mat, int* len, int col, bool increasing);
+static int sortMatrixByCol(int** mat, int* len, int col, bool increasing, bool flag_remove_rows);
 static void freePlayersInfo(int** players_info, int len);
 static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament);
 static void initializePlayerIdCol(int** players_info, int* hist_of_players_id, int num_of_players);
@@ -122,34 +122,26 @@ in before he was removed?
 If we have to take into account only the games from the last time he was added, then how to do it? */
 double chessCalculateAveragePlayTime (ChessSystem chess, int player_id, ChessResult* chess_result)
 {
-    int games_participated_in =0;
-    MAP_FOREACH(int*, tournament_iterator, chess->tournaments)
+    if(chess == NULL)
     {
-        Tournament tournament = mapGet(chess->tournaments, tournament_iterator);
-        games_participated_in += playerCountGamesInTournament(tournament, player_id);
+        *chess_result = CHESS_NULL_ARGUMENT;
+        return CHESS_NULL_ARGUMENT;
     }
 
-    /*Can I use MAP_FOREACH here? I used it above so the iterator status might be
-    undefined... */
-    double average_playtime = 0;
-    MAP_FOREACH(int*, tournament_iterator, chess->tournaments)
+    if(player_id <= 0)
     {
-        Tournament tournament = mapGet(chess->tournaments, tournament_iterator);
-        Map games_list = tournamentGetGames(tournament);
-        
-        MAP_FOREACH(int*, game_id_iterator, games_list)
-        {
-            Game current_game = mapGet(games_list, game_id_iterator);
-            int current_first = gameGetFirstPlayer(current_game);
-            int current_second = gameGetSecondPlayer(current_game);
-            if(playerExistsInGame(current_game, player_id))
-            {
-                average_playtime += gameGetPlayTime(current_game)/games_participated_in;
-            }
-        }
+        *chess_result = CHESS_INVALID_ID;
+        return CHESS_INVALID_ID;
     }
-    
-    return average_playtime;
+
+    if(!mapContains(chess->players, &player_id))
+    {
+        *chess_result = CHESS_PLAYER_NOT_EXIST;
+        return CHESS_PLAYER_NOT_EXIST;
+    }
+
+    Player player = mapGet(chess->players, &player_id);
+    return playerGetAvgPlayTime(player);
 }
 
 static bool playerExistsInGame(Game game, Player player_id)
@@ -257,11 +249,13 @@ static void addPlayersToPlayersList(ChessSystem chess, Player first_player, Play
 
 
 /*update player stats in the players map*/
-static void updatePlayerStats(ChessSystem chess,Game game)
+static void updatePlayerStats(ChessSystem chess, Game game)
 {
     Map players_list = chess->players;
-    Player player1 = mapGet(players_list, gameGetFirstPlayer(game));
-    Player player2 = mapGet(players_list, gameGetSecondPlayer(game));
+    int first_player_id = gameGetFirstPlayer(game);
+    int second_player_id = gameGetSecondPlayer(game);
+    Player player1 = mapGet(players_list, &first_player_id);
+    Player player2 = mapGet(players_list, &second_player_id);
 
     int player1_wins = playerGetGameStatics(player1, PLAYER_WINS);
     int player1_losses = playerGetGameStatics(player1, PLAYER_LOSSES);
@@ -292,6 +286,21 @@ static void updatePlayerStats(ChessSystem chess,Game game)
             break;
         }
 
+    int player1_total_games = player1_wins + player1_draws + player1_losses + 1;
+    int player2_total_games = player2_wins + player2_draws + player2_losses + 1;
+
+    double player1_avg_play_time = playerGetAvgPlayTime(player1);
+    double player2_avg_play_time = playerGetAvgPlayTime(player2);
+
+    int game_play_time = gameGetPlayTime(game); 
+
+    double new_player1_avg_play_time = ((player1_avg_play_time * (player1_total_games -1)) + game_play_time)
+                                         / player1_total_games;
+    playerSetAvgPlayTime(player1, new_player1_avg_play_time);
+
+    double new_player2_avg_play_time = ((player2_avg_play_time * (player2_total_games -1)) + game_play_time)
+                                        / player2_total_games;
+    playerSetAvgPlayTime(player2, new_player2_avg_play_time);
 
 }
 
@@ -587,25 +596,25 @@ static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
     }
 
     //free mallocations
-    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_POINTS_COL, false) == 1)
+    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_POINTS_COL, false, true) == 1)
     {
         freePlayersInfo(players_info, num_of_players);
         return players_info[0][PLAYER_ID_COL];
     }
 
-    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_LOSSES_COL, true) == 1)
+    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_LOSSES_COL, true, true) == 1)
     {
         freePlayersInfo(players_info, num_of_players);
         return players_info[0][PLAYER_ID_COL];
     }
 
-    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_WINS_COL, false) == 1)
+    if(sortMatrixByCol(players_info, &num_of_players, PLAYER_WINS_COL, false, true) == 1)
     {
         freePlayersInfo(players_info, num_of_players);
         return players_info[0][PLAYER_ID_COL];
     }
 
-    sortMatrixByCol(players_info, num_of_players, PLAYER_ID_COL, true);
+    sortMatrixByCol(players_info, num_of_players, PLAYER_ID_COL, true, true);
 
     freePlayersInfo(players_info, num_of_players);
     
@@ -660,7 +669,7 @@ static bool allocatePlayersInfo(int** players_info, int* hist_of_players_id, int
     return true;
 }
 
-static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
+static int sortMatrixByCol(int** mat, int* len, int col, bool increasing, bool flag_remove_rows)
 {
     for (int i = 0; i < *len; i++)
     {
@@ -683,13 +692,15 @@ static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
         }
     }
 
-
-    for (int i = (*len)-1; i >= 0; i--)
+    if(flag_remove_rows)
     {
-        if(mat[i][PLAYER_POINTS_COL] != mat[0][PLAYER_POINTS_COL])
+        for (int i = (*len)-1; i >= 0; i--)
         {
-            free(mat[i]);
-            (*len) = (*len) - 1;
+            if(mat[i][col] != mat[0][col])
+            {
+                free(mat[i]);
+                (*len) = (*len) - 1;
+            }
         }
     }
 

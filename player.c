@@ -9,6 +9,7 @@ struct Player_t
     int game_wins;
     int game_losses;
     int game_draws;
+    double average_play_time;
 };
 
 Player playerCreate(int player_id)
@@ -24,6 +25,7 @@ Player playerCreate(int player_id)
     new_player->game_wins = 0;
     new_player->game_losses = 0;
     new_player->game_draws = 0;
+    new_player->average_play_time = 0;
 
     return new_player;
 }
@@ -126,4 +128,14 @@ int playerGetGameStatics(Player player, PlayerStaticsMode mode)
     default:
         return PLAYER_NULL_ARGUMENT;
     }
+}
+
+double playerGetAvgPlayTime(Player player)
+{
+    if(player == NULL)
+    {
+        return 0;
+    }
+
+    return player->average_play_time;
 }

@@ -22,11 +22,12 @@ void playerDestroy(Player player);
 void playerSetId(Player player, int id);
 void playerSetLevel(Player player, double level);
 void playerSetGameStatics(Player player, PlayerStaticsMode mode, int value);
-
+void playerSetAvgPlayTime(Player player, double average_play_time);
 
 /* GET */
 int playerGetId(Player player);
 double playerGetLevel(Player player);
 int playerGetGameStatics(Player player, PlayerStaticsMode mode);
+double playerGetAvgPlayTime(Player player);
 
 #endif
