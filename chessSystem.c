@@ -906,7 +906,9 @@ static MapDataElement copyDataTournament(MapDataElement element)
     }
 
     int cpy_id = tournamentGetId((Tournament) element);
+    //maybe should use strcpy and make a new copy of the str location
     const char* cpy_location = tournamentGetLocation((Tournament) element);
+    //maybe should use strcpy and make a new copy of the str location
     int cpy_max_games = tournamentGetMaxGames((Tournament) element);
     bool cpy_finished = tournamentGetFinishedState((Tournament) element);
     int cpy_tour_winner_id = tournamentGetWinnderId((Tournament) element);
@@ -939,6 +941,9 @@ static MapDataElement copyDataPlayer(MapDataElement element)
 
     int cpy_id = playerGetId((Player) element);
     double cpy_level = playerGetLevel((Player) element);
+    int wins_copy = playerGetGameStatics(element, PLAYER_WINS);
+    int losses_copy = playerGetGameStatics(element, PLAYER_LOSSES);
+    int draws_copy = playerGetGameStatics(element, PLAYER_DRAWS);
 
     if(cpy_id <= 0)
     {
@@ -950,6 +955,10 @@ static MapDataElement copyDataPlayer(MapDataElement element)
     {
         return NULL;
     }
+    
+    playerSetGameStatics(element, PLAYER_WINS, wins_copy);
+    playerSetGameStatics(element, PLAYER_LOSSES, losses_copy);
+    playerSetGameStatics(element, PLAYER_DRAWS, draws_copy);
 
     playerSetLevel(copy, cpy_level);
 

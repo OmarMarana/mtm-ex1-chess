@@ -41,6 +41,7 @@ void gameSetPlayTime(Game game,int play_time);
 void gameSetId(Game game,int game_id);
 
 
+/*Map functions*/
 MapDataElement copyGameFunc(MapDataElement game);
 MapKeyElement copyGameIdFunc(MapKeyElement game_id);
 void freeGameFunc(MapDataElement game);
