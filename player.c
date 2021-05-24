@@ -84,6 +84,16 @@ void playerSetGameStatics(Player player, PlayerStaticsMode mode, int value)
     }
 }
 
+void playerSetAvgPlayTime(Player player, double average_play_time)
+{
+    if(player == NULL || average_play_time < 0)
+    {
+        return;
+    }
+
+    player->average_play_time = average_play_time;
+}
+
 /* ********************** */
 /* ******** GET ********* */
 /* ********************** */

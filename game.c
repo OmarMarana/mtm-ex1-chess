@@ -27,7 +27,7 @@ MapDataElement copyGameFunc(MapDataElement game)
     int game_id = gameGetId(game);
 
     Game game_copy = gameCreate(first, second, winner, play_time, game_id);
-    if(game_copy = NULL)
+    if(game_copy == NULL)
     {
         return NULL;
 
@@ -112,6 +112,10 @@ int gameGetPlayTime(Game game)
     return game->play_time;
 }
 
+int gameGetId(Game game)
+{
+    return game->game_id;
+}
 
 
 /*gameCreate*/

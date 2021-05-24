@@ -15,7 +15,7 @@ struct tournament_t
     Map game_list;
 };
 
-
+/*make a copy of tournament_location and put it in tour_to_create->location */
 Tournament tournamentCreate(int tournament_id, const char* tournament_location, int max_games_per_player)
 {
     if(tournament_id <= 0 || tournament_location == NULL || max_games_per_player <= 0)
@@ -43,7 +43,9 @@ Tournament tournamentCreate(int tournament_id, const char* tournament_location, 
 
 void tournamentDestroy(Tournament tournament)
 {
+    mapClear(tournament->game_list);
     mapDestroy(tournament->game_list);
+    free(tournament->game_list);
     free(tournament);
 }
 
@@ -115,7 +117,7 @@ void tournamentSetNumDiffPlayers(Tournament tournament, int num_of_players)
 
 void tournamentSetGameList(Tournament tournament, Map games)
 {
-    if(tournament == NULL || games < 0)
+    if(tournament == NULL || games == NULL)
     {
         return;
     }
