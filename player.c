@@ -103,6 +103,7 @@ double playerGetLevel(Player player)
     {
         return PLAYER_NULL_ARGUMENT;
     }
+    
     return player->level;
 }
 

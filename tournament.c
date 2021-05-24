@@ -15,9 +15,6 @@ struct tournament_t
     Map game_list;
 };
 
-/* num_different_players:
- Was this intended for active players exclusively? or including the removed ones too?
- Im assuming that its its the latter*/
 
 Tournament tournamentCreate(int tournament_id, const char* tournament_location, int max_games_per_player)
 {
