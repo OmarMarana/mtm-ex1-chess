@@ -11,9 +11,13 @@ struct tournament_t
     const char* location;
     bool finished;
     int tournament_winner_id;
-    int num_different_players;
+    int num_different_players;   
     Map game_list;
 };
+
+/* num_different_players:
+ Was this intended for active players exclusively? or including the removed ones too?
+ Im assuming that its its the latter*/
 
 Tournament tournamentCreate(int tournament_id, const char* tournament_location, int max_games_per_player)
 {

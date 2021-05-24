@@ -117,6 +117,72 @@ ChessSystem chessCreate()
     return chessSystem;
 }
 
+
+ChessResult chessSaveTournamentStatistics (ChessSystem chess, char* path_file)
+{
+    if(chess == NULL)
+    {
+        return CHESS_NULL_ARGUMENT;
+    }
+    
+    if(noTournamentsEnded())
+    {
+        return CHESS_NO_TOURNAMENTS_ENDED;
+    }
+
+    FILE* stream = fopen( path_file, "a");    // check syntax, dont forget to close
+
+    if(stream == NULL)
+    {
+        return CHESS_SAVE_FAILURE;
+    }
+
+    /*dont forget the saving error CHESS_SAVE_FAILURE*/
+
+    MAP_FOREACH(int*, tournament_iterator, chess->tournaments)
+    {
+        Tournament tournament = mapGet(chess->tournaments, tournament_iterator);
+        if(tournamentGetFinishedState(tournament) == false)
+        {
+            continue;
+        }
+        
+        /*since chess->tournaments is a map, we can assume that its sorted by ids (increasing)*/
+        
+        fprintf(stream, "%d\n", tournamentGetWinnderId(tournament));
+        fprintf(stream, "%d\n", tournamentGetLongestGameTime(tournament));
+        fprintf(stream, "%d\n", tournamentGetAverageGameTime(tournament));
+        fprintf(stream, "%s\n", tournamentGetLocation(tournament));
+        fprintf(stream, "%d\n", mapGetSize(tournamentGetGames(tournament)));
+        fprintf(stream, "%d\n", tournamentGetNumDiffPlayers(tournament)); // get number of players (including those who were removed) 
+
+    }
+
+    fclose(FILE* stream);
+
+    // int fclose_result = fclose(FILE* stream);
+    // if(fclose(FILE* stream) == EOF)
+    // {
+    //     return CHESS_SAVE_FAILURE;
+    // }
+
+
+}
+
+int tournamentGetLongestGameTime(Tournament tournament)
+{
+    
+
+}
+
+
+
+int tournamentGetAverageGameTime(Tournament tournament);
+
+
+
+
+
 /*Should all the games be taken into account?including the games that the player participated
 in before he was removed?
 If we have to take into account only the games from the last time he was added, then how to do it? */
