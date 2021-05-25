@@ -15,9 +15,9 @@
 #define WIN_POINTS 2
 #define DRAW_POINTS 1
 #define PLAYER_STATS_COLS 5
-#define PLAYER_WINS_FACTOR 6
-#define PLAYER_LOSE_FACTOR 10
-#define PLAYER_DRAW_FACTOR 2
+#define PLAYER_WINS_FACTOR 6.0
+#define PLAYER_LOSE_FACTOR 10.0
+#define PLAYER_DRAW_FACTOR 2.0
 #define PLAY_MAT_NUM_COLS 2
 
 
@@ -54,7 +54,7 @@ struct chess_system_t
 /* SELF TEST FUNCTION * ONLY FOR DEBUGGING     */
 /* ******************************************* */
 
-static void selfTest_addTournament(ChessSystem my_chess, int id, int maxGames, const char* loc);
+// static void selfTest_addTournament(ChessSystem my_chess, int id, int maxGames, const char* loc);
 // static void selfTest_addGame(ChessSystem chess, int tour_id, int first, int second, Winner winner, int time);
 // static void selfTest_PrintPlayerIds(ChessSystem chess);
 // static void selfTest_endTour(ChessSystem chess, int tour_id);
@@ -72,6 +72,10 @@ static void freeInt(MapKeyElement element);
 static MapDataElement copyDataPlayer(MapDataElement element);
 static MapDataElement copyDataTournament(MapDataElement element);
 static MapKeyElement copyKeyInt(MapKeyElement element);
+
+/*GAME Map functions*/
+static MapDataElement copyGameFunc(MapDataElement game);
+static void freeGameFunc(MapDataElement game);
 
 
 
@@ -117,32 +121,32 @@ static void updateTournamentStats(ChessSystem chess , Tournament tournament);
 
 ChessSystem chessCreate()
 {
-    ChessSystem chessSystem = malloc(sizeof(*chessSystem));
-    if(chessSystem == NULL)
+    ChessSystem chess = malloc(sizeof(*chess));
+    if(chess == NULL)
     {
         return NULL;
     }
 
-    //key element is the tournament id. (int)
     Map tournaments = mapCreate(copyDataTournament, copyKeyInt, freeTournament, freeInt, compareInts);
-    
     if(tournaments == NULL)
     {
+        outOfMemoryError(chess);
         return NULL;
     }
-    
 
-    //key element is the player id. (int)
+    chess->tournaments = tournaments;
+
     Map players = mapCreate(copyDataPlayer, copyKeyInt, freePlayer, freeInt, compareInts);
     if(players == NULL)
     {
+        outOfMemoryError(chess);
         return NULL;
     }
 
-    chessSystem->players = players;
-    chessSystem->tournaments = tournaments;
+    chess->players = players;
 
-    return chessSystem;
+
+    return chess;
 }
 
 
@@ -152,8 +156,6 @@ ChessResult chessSavePlayersLevels (ChessSystem chess, FILE* file)
     {
         return CHESS_NULL_ARGUMENT;
     }
-
-  //  FILE* stream = fopen(file, "w");
 
     if(file == NULL)
     {
@@ -166,12 +168,13 @@ ChessResult chessSavePlayersLevels (ChessSystem chess, FILE* file)
     double** players_info = (double**) malloc(sizeof(double*) * num_of_players);
     if(players_info == NULL)
     {
-        outOfMemoryError(chess);    
+        outOfMemoryError(chess); 
     }
 
     bool allocate_result = allocatePlayersInfoDouble(players_info, num_of_players, PLAY_MAT_NUM_COLS);
     if(!allocate_result)
     {
+        freePlayersInfo(players_info, num_of_players);
         outOfMemoryError(chess);
     }
 
@@ -204,11 +207,10 @@ ChessResult chessSavePlayersLevels (ChessSystem chess, FILE* file)
 
     for (int i = 0; i < num_of_players; i++)
     {
-        fprintf(file, "%d %f.2\n", (int) players_info[i][PLAYER_ID_COL], players_info[i][PLAYER_POINTS_COL]);
+        fprintf(file, "%d %.2f\n", (int) players_info[i][PLAYER_ID_COL], players_info[i][PLAYER_POINTS_COL]);
     }
-    
 
-  //  fclose(file);
+    freePlayersInfo(players_info, num_of_players);
 
     return CHESS_SUCCESS;
     
@@ -252,7 +254,6 @@ static void setPlayersInfoInMat(ChessSystem chess, double** players_info)
 
     MAP_FOREACH(int*, player_iterator, chess->players)
     {
-        printf("setPlayersInfoInMat, i = %d\n", i);
         Player current_player = mapGet(chess->players, player_iterator);
        
         int current_id = playerGetId(current_player);
@@ -264,6 +265,7 @@ static void setPlayersInfoInMat(ChessSystem chess, double** players_info)
             players_info[i][PLAYER_POINTS_COL] = current_level;
         }
         i++;
+        free(player_iterator);
     }
 }
 
@@ -276,9 +278,13 @@ static double calcPlayerLevel(ChessSystem chess, int player_id)
     int draws = playerGetGameStatics(player, PLAYER_DRAWS);
 
     int total_games = wins + losses + draws;
+    // if(total_games == 0)
+    // {
+    //     return 0;
+    // }
 
     double player_level =((PLAYER_WINS_FACTOR * wins) - (PLAYER_LOSE_FACTOR * losses) + (PLAYER_DRAW_FACTOR * draws))
-                         / total_games;
+                         / (double) total_games;
 
     return player_level;
 }
@@ -314,10 +320,12 @@ ChessResult chessSaveTournamentStatistics (ChessSystem chess, char* path_file)
         
         fprintf(stream, "%d\n",   tournamentGetWinnderId(tournament));
         fprintf(stream, "%d\n",   tournamentGetLongestGameTime(tournament));
-        fprintf(stream, "%f.2\n", tournamentGetAverageGameTime(tournament));
+        fprintf(stream, "%.2f\n", tournamentGetAverageGameTime(tournament));
         fprintf(stream, "%s\n",   tournamentGetLocation(tournament));
         fprintf(stream, "%d\n",   tournamentGetGamesPlayed(tournament));
         fprintf(stream, "%d\n",   tournamentGetNumDiffPlayers(tournament));
+
+        free(tournament_iterator);
     }
 
     fclose(stream);
@@ -335,6 +343,7 @@ static int tournamentGetLongestGameTime(Tournament tournament)
         {
             max = current_game_time;
         }
+        free(game_id_iterator);
     }
     
     return max;
@@ -350,6 +359,7 @@ static double tournamentGetAverageGameTime(Tournament tournament)
         Game current_game = mapGet(tournamentGetGames(tournament), game_id_iterator);
         int current_game_time = gameGetPlayTime(current_game);
         game_avg += (current_game_time / total_games);
+        free(game_id_iterator);
     }
 
     return game_avg;
@@ -362,8 +372,10 @@ static bool noTournamentsEnded(ChessSystem chess)
         Tournament tournament = mapGet(chess->tournaments, tournament_iterator);
         if(tournamentGetFinishedState(tournament) == true)
         {
+            free(tournament_iterator);
             return false;
         }
+        free(tournament_iterator);
     }
     return true;
 }
@@ -419,6 +431,7 @@ ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
 
     if(gameAlreadyExists(chess, tournament, first_player, second_player) == true)
     {
+        printf("gameAlready..\n");
         return CHESS_GAME_ALREADY_EXISTS;
     }
 
@@ -437,7 +450,6 @@ ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
     Game new_game = gameCreate(first_player, second_player, winner, play_time, new_game_id);
     if(new_game == NULL)
     {
-        gameDestroy(new_game);
         outOfMemoryError(chess);
     }
 
@@ -446,10 +458,15 @@ ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
     {
         outOfMemoryError(chess);
     }
-   
+    
+
+
     addPlayersToPlayersList(chess, first_player, second_player);
     updateTournamentStats(chess, tournament);
     updatePlayerStats(chess, new_game);
+
+    gameDestroy(new_game);
+
     
 
     return CHESS_SUCCESS;
@@ -468,6 +485,7 @@ static void addPlayersToPlayersList(ChessSystem chess, int first_player, int sec
         mapPut(chess->players, &first_player, player1);
         playerDestroy(player1);
     }
+
     if(!mapContains(chess->players, &second_player))
     {
         Player player2 = playerCreate(second_player);
@@ -559,6 +577,8 @@ static void updateTournamentStats(ChessSystem chess , Tournament tournament)
     int num_of_players = initializeHist(hist_players, tournament, max_length);
 
     tournamentSetNumDiffPlayers(tournament, num_of_players);
+
+    free(hist_players);
 }
 
 static int playerCountGamesInTournament(Tournament tournament, int player_id)
@@ -575,6 +595,7 @@ static int playerCountGamesInTournament(Tournament tournament, int player_id)
         {
             count++;
         }
+        free(game_id_iterator);
     }
 
 
@@ -598,22 +619,24 @@ static bool gameAlreadyExists(ChessSystem chess, Tournament tournament, int firs
         if(( first_player  == current_first || first_player == current_second) &&
             (second_player == current_first || second_player == current_second ))
         {
+            free(game_id_iterator);
             return true;
         }
+        free(game_id_iterator);
     }
-    
     return false;
 }
 
 static void outOfMemoryError(ChessSystem chess)
 {
+    printf("OUT OF MEMORY!\n");
     chessDestroy(chess);
     exit(1);
 }
 
 void chessDestroy(ChessSystem chess)
 {
-        printf("start of chessDesroy reached!\n\n");
+
     if(chess == NULL)
     {
         return;
@@ -621,12 +644,16 @@ void chessDestroy(ChessSystem chess)
 
     mapDestroy(chess->players);
 
-    
-    
-    printf("end of chessDesroy reached!\n\n");
+    MAP_FOREACH(int*, tour_iterator, chess->tournaments)
+    {
+        Tournament current_tour = mapGet(chess->tournaments, tour_iterator);
 
+        mapDestroy(tournamentGetGames(current_tour));
 
+        free(tour_iterator);
+    }
 
+    mapDestroy(chess->tournaments);
     free(chess);
 }
 
@@ -659,17 +686,26 @@ ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
     }
 
     Tournament new_tournament = tournamentCreate(tournament_id, tournament_location, max_games_per_player);
-    if(new_tournament == NULL)
+    Map games = mapCreate(copyGameFunc, copyKeyInt, freeGameFunc, freeInt, compareInts);
+
+    if(new_tournament == NULL || games == NULL)
     {
+        printf("TT\n");
         outOfMemoryError(chess);
     }
+
+    tournamentSetGameList(new_tournament, games);
 
     MapResult putResult = mapPut(chess->tournaments, &tournament_id, new_tournament);
 
     if(putResult != MAP_SUCCESS)
     {
+        printf("putResult = %d\n", putResult);
         outOfMemoryError(chess);
     }
+
+    tournamentDestroy(new_tournament);
+    mapDestroy(games);
 
     return CHESS_SUCCESS;
 }
@@ -724,6 +760,7 @@ ChessResult chessRemovePlayer(ChessSystem chess, int player_id)
         Tournament current_tournament = mapGet(chess->tournaments, tournament_iterator);
         if(tournamentGetFinishedState(current_tournament) == true)
         {
+            free(tournament_iterator);
             continue;            
         }
         
@@ -732,7 +769,9 @@ ChessResult chessRemovePlayer(ChessSystem chess, int player_id)
             Game current_game = mapGet(tournamentGetGames(current_tournament), game_iterator);
 
             setOpponentTheWinner(current_game, player_id);
+            free(game_iterator);
         }
+        free(tournament_iterator);
     }
 
     mapRemove(chess->players, &player_id);
@@ -765,10 +804,14 @@ ChessResult chessEndTournament(ChessSystem chess, int tournament_id)
 
     if(mapGetSize(tournamentGetGames(current_tournament)) <= 0)
     {
+        printf("NO GAMES \n");
         return CHESS_NO_GAMES;
     }
 
     int winner_id = calcTournamentWinnerId(chess, current_tournament);
+    
+    return CHESS_SUCCESS;
+
 
     tournamentSetWinnderId(current_tournament, winner_id);
     tournamentSetFinishedState(current_tournament, true);
@@ -783,11 +826,6 @@ ChessResult chessEndTournament(ChessSystem chess, int tournament_id)
 /* return the id of the tournament winner. */
 static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
 {
-    if(tournament == NULL)
-    {
-        return TOURNAMENT_NULL_ARGUMENT;
-    }
-
     int num_of_players = tournamentGetNumDiffPlayers(tournament);
 
     int** players_info = (int**) malloc(sizeof(int*) * num_of_players);
@@ -806,8 +844,11 @@ static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
     bool allocate_result = allocatePlayersInfo(players_info, hist_of_players_id, num_of_players, PLAYER_STATS_COLS);
     if(!allocate_result)
     {
+        free(hist_of_players_id);
+        free(players_info);
         outOfMemoryError(chess);
     }
+
     
     initalizePlayerInfo(players_info, hist_of_players_id, num_of_players, PLAYER_STATS_COLS);
     initializeHist(hist_of_players_id, tournament, num_of_players);
@@ -823,30 +864,38 @@ static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
                                              DRAW_POINTS * players_info[i][PLAYER_DRAWS_COL];
     }
 
-    //free mallocations
+    int winner_id = 2;
+
+
     if(sortMatrixByCol(players_info, &num_of_players, PLAYER_POINTS_COL, false) == 1)
     {
+        winner_id = players_info[0][PLAYER_ID_COL];
         freePlayersInfo(players_info, num_of_players);
-        return players_info[0][PLAYER_ID_COL];
+        return winner_id;
     }
 
     if(sortMatrixByCol(players_info, &num_of_players, PLAYER_LOSSES_COL, true) == 1)
     {
+        winner_id = players_info[0][PLAYER_ID_COL];
         freePlayersInfo(players_info, num_of_players);
-        return players_info[0][PLAYER_ID_COL];
+        return winner_id;
     }
 
     if(sortMatrixByCol(players_info, &num_of_players, PLAYER_WINS_COL, false) == 1)
     {
+        winner_id = players_info[0][PLAYER_ID_COL];
         freePlayersInfo(players_info, num_of_players);
-        return players_info[0][PLAYER_ID_COL];
+        return winner_id;
     }
+
 
     sortMatrixByCol(players_info, &num_of_players, PLAYER_ID_COL, true);
 
+    winner_id = players_info[0][PLAYER_ID_COL];
+
     freePlayersInfo(players_info, num_of_players);
     
-    return players_info[0][PLAYER_ID_COL];
+    return winner_id;
 }
 
 static void freePlayersInfo(int** players_info, int len)
@@ -855,6 +904,7 @@ static void freePlayersInfo(int** players_info, int len)
     {
         free(players_info[i]);
     }
+    free(players_info);
 }
 
 static void initializePlayerIdCol(int** players_info, int* hist_of_players_id, int num_of_players)
@@ -901,12 +951,13 @@ static bool allocatePlayersInfo(int** players_info, int* hist_of_players_id, int
     return true;
 }
 
-/* return's the new len of the mat. if 'flag_remove_rows' == false, the old len = new len.*/
+/* return's the new len of the mat.*/
 static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
 {
-    for (int i = 0; i < *len; i++)
+    int length = *len;
+    for (int i = 0; i < length; i++)
     {
-        for (int t = i+1; t < (*len) - 1; t++)
+        for (int t = 1; t < length - 1; t++)
         {
             if(increasing)
             {
@@ -925,16 +976,24 @@ static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
         }
     }
 
+    for (int i = length-1; i > 0; i--)
+    {
+        if(mat[i][col] != mat[0][col])
+        {
+            free(mat[i]);
+            length--;
+        }
+    }
+    *len = length;
 
-    return (*len);
+    return length;
 }
 
-
-static void sortDoubleMatrixByCol(double** mat, int len, int col, bool increasing)
+    static void sortDoubleMatrixByCol(double** mat, int len, int col, bool increasing)
 {
     for (int i = 0; i < len; i++)
     {
-        for (int t = i+1; t < len - 1; t++)
+        for (int t = 1; t < len - 1; t++)
         {
             if(increasing)
             {
@@ -952,8 +1011,6 @@ static void sortDoubleMatrixByCol(double** mat, int len, int col, bool increasin
             }
         }
     }
-
-  
 }
 
 static void swapDoubleRow(double* row_a, double* row_b, int row_len)
@@ -982,7 +1039,6 @@ static void sumWinLoseDraw(int** players_info, int num_of_players, Tournament to
 {
     MAP_FOREACH(int*, games_iterator, tournamentGetGames(tournament))
     {
-        /*int current_game_id = *games_iterator; try to test with this int and without.... */
         Game current_game = mapGet(tournamentGetGames(tournament), games_iterator);
 
         int current_first_id = gameGetFirstPlayer(current_game);
@@ -1024,6 +1080,7 @@ static void sumWinLoseDraw(int** players_info, int num_of_players, Tournament to
         default:
             break;
         }
+        free(games_iterator);
     }
 }
 
@@ -1032,7 +1089,6 @@ static int initializeHist(int* hist, Tournament tournament, int hist_len)
     int i = 0;
     MAP_FOREACH(int*, games_iterator, tournamentGetGames(tournament))
     {
-        /*int current_game_id = *games_iterator; try to test with this int and without.... */
         Game current_game = mapGet(tournamentGetGames(tournament), games_iterator);
         int current_first = gameGetFirstPlayer(current_game);
         int current_second = gameGetSecondPlayer(current_game);
@@ -1050,7 +1106,8 @@ static int initializeHist(int* hist, Tournament tournament, int hist_len)
                 hist[i] = current_second;
                 i++;
             }
-        }  
+        }
+        free(games_iterator);
     }
 
     return i;
@@ -1170,8 +1227,6 @@ static MapKeyElement copyKeyInt(MapKeyElement element)
 /** Function to be used for copying a tournament as a data to the map */
 static MapDataElement copyDataTournament(MapDataElement element)
 {
-    return NULL;
-
     if (element == NULL)
     {
         return NULL;
@@ -1183,19 +1238,18 @@ static MapDataElement copyDataTournament(MapDataElement element)
     //maybe should use strcpy and make a new copy of the str location
 
     const char* cpy_location = tournamentGetLocation((Tournament) element);
-    //maybe should use strcpy and make a new copy of the str location
+
     int cpy_max_games = tournamentGetMaxGames((Tournament) element);
     bool cpy_finished = tournamentGetFinishedState((Tournament) element);
     int cpy_tour_winner_id = tournamentGetWinnderId((Tournament) element);
     int cpy_different_players = tournamentGetNumDiffPlayers((Tournament) element);
-    Map cpy_game_list = NULL;//mapCopy(tournamentGetGames((Tournament) element));
-    
-    
+    Map cpy_game_list = mapCopy(tournamentGetGames((Tournament) element));
 
-
+    /*//mapDestroy(tournamentGetGames((Tournament) element));*/
+    
 
     Tournament copy_tournament = tournamentCreate(cpy_id, cpy_location, cpy_max_games);
-    if (copy_tournament == NULL)// || cpy_game_list == NULL)
+    if (copy_tournament == NULL || cpy_game_list == NULL)
     {
         return NULL;
     }
@@ -1249,7 +1303,7 @@ static void freeInt(MapKeyElement element)
     free(element);
 }
 
-/** Function to be used by the map for freeing elements */
+// /** Function to be used by the map for freeing elements */
 static void freeTournament(MapDataElement element)
 {
     tournamentDestroy(element);
@@ -1267,106 +1321,119 @@ static int compareInts(MapKeyElement element1, MapKeyElement element2)
     return (*(int *) element1 - *(int *) element2);
 }
 
-
-int main()
+static MapDataElement copyGameFunc(MapDataElement game)
 {
+    int first = gameGetFirstPlayer((Game)game);
+    int second = gameGetSecondPlayer((Game)game);
+    Winner winner = gameGetWinner((Game)game);
+    int play_time = gameGetPlayTime((Game)game);
+    int game_id = gameGetId(game);
 
-
-    printf(ANSI_COLOR_BLUE "Test started...\n" ANSI_COLOR_RESET);
-    ChessSystem my_chess;
-
-    my_chess = chessCreate();
-
-    chessDestroy(my_chess);
-
-    return 0;
-
-
-
-
-    if(my_chess == NULL)
+    Game game_copy = gameCreate(first, second, winner, play_time, game_id);
+    if(game_copy == NULL)
     {
-        printf(ANSI_COLOR_RED "couldn't create chess system! - FAIL!\n" ANSI_COLOR_RESET);
-        return 0;
-        
+        return NULL;
+
     }
-    else
-    {
-        printf(ANSI_COLOR_GREEN "Chess System Created successfully.\n" ANSI_COLOR_RESET);
-    }
-
-    // ASSERT_TEST(chessAddTournament(chess, 1, 4, "London") == CHESS_SUCCESS);
-    // ASSERT_TEST(chessAddTournament(chess, 2, 5, "London") == CHESS_SUCCESS);
-    // ASSERT_TEST(chessAddTournament(chess, 1, 10, "Paris") == CHESS_TOURNAMENT_ALREADY_EXISTS);
-    selfTest_addTournament(my_chess, 1, 4, "London");
-    selfTest_addTournament(my_chess, 2, 5, "London");
-    selfTest_addTournament(my_chess, 1, 10, "Paris");
-
-//     printf(ANSI_COLOR_BLUE "Adding new tournament...\n" ANSI_COLOR_RESET);
-//     int tour_id = 8;
-
-//     selfTest_addTournament(my_chess, tour_id, 3, "Haifa technion");
-
-//     printf(ANSI_COLOR_BLUE "Adding new games...\n" ANSI_COLOR_RESET);
-
-//     selfTest_addGame(my_chess, tour_id, 87, 55, FIRST_PLAYER, 40);
-
-//     // printf(ANSI_COLOR_BLUE "ending tournament...\n" ANSI_COLOR_RESET);
-
-//     // selfTest_endTour(my_chess, tour_id);
-
-//    // printf(ANSI_COLOR_BLUE "Adding new game...\n" ANSI_COLOR_RESET);
-
-//     selfTest_addGame(my_chess, tour_id, 105, 290, FIRST_PLAYER, 576);
-
-
-//     selfTest_PrintPlayerIds(my_chess);
-
-    printf(ANSI_COLOR_BLUE "TEST FINISHED!\n" ANSI_COLOR_RESET);
-
-    chessDestroy(my_chess);
-    return 0;
+    
+    return game_copy;
 }
 
-// static void selfTest_endTour(ChessSystem chess, int tour_id)
+static void freeGameFunc(MapDataElement game)
+{
+    gameDestroy(game);
+}
+
+
+
+
+
+
+// int main()
 // {
-//     ChessResult tour_end_rslt = chessEndTournament(chess, tour_id);
+//     printf(ANSI_COLOR_BLUE "Test started...\n" ANSI_COLOR_RESET);
 
-//     switch(tour_end_rslt)
+//     ChessSystem my_chess;
+//     my_chess = chessCreate();
+
+//     if(my_chess == NULL)
 //     {
-//     case CHESS_SUCCESS:
-//         printf(ANSI_COLOR_GREEN "tournament id = %d ended successfully", tour_id);
-//         printf("\n" ANSI_COLOR_RESET);
-//     break;
-        
-//     case CHESS_NULL_ARGUMENT:
-//         printf(ANSI_COLOR_RED "Error! NULL argument.\n" ANSI_COLOR_RESET);
-//     break;
-
-//     case CHESS_INVALID_ID:
-//         printf(ANSI_COLOR_RED "Error! invalid id.\n" ANSI_COLOR_RESET);
-//     break;
-
-//     case CHESS_TOURNAMENT_NOT_EXIST:
-//         printf(ANSI_COLOR_RED "Error! tournament not exist.\n" ANSI_COLOR_RESET);
-//     break;
-
-//     case CHESS_TOURNAMENT_ENDED:
-//         printf( ANSI_COLOR_RED "Error! tournament already ended.\n" ANSI_COLOR_RESET);
-//     break;
-
-//     case CHESS_NO_GAMES:
-//         printf( ANSI_COLOR_RED "Error! no games.\n" ANSI_COLOR_RESET);
-//     break;
-
-//     default:
-//         printf(ANSI_COLOR_RED "Error! default error code!!!.\n" ANSI_COLOR_RESET);
-//         break;
+//         printf(ANSI_COLOR_RED "couldn't create chess system! - FAIL!\n" ANSI_COLOR_RESET);
+//         return 0;
 //     }
+//     else
+//     {
+//         printf(ANSI_COLOR_GREEN "Chess System Created successfully.\n" ANSI_COLOR_RESET);
+//     }
+
+
+//     selfTest_addTournament(my_chess, 1, 4, "London");
+
+//     selfTest_addTournament(my_chess, 2, 5, "London");
+
+//     selfTest_addTournament(my_chess, 3, 10, "Paris");
+
+//     selfTest_addGame(my_chess, 1, 87, 55, FIRST_PLAYER, 40);
+
+//     chessDestroy(my_chess);
+//     return 0;
+
+// //     // printf(ANSI_COLOR_BLUE "ending tournament...\n" ANSI_COLOR_RESET);
+
+// //     // selfTest_endTour(my_chess, tour_id);
+
+// //    // printf(ANSI_COLOR_BLUE "Adding new game...\n" ANSI_COLOR_RESET);
+
+// //     selfTest_addGame(my_chess, tour_id, 105, 290, FIRST_PLAYER, 576);
+
+
+// //     selfTest_PrintPlayerIds(my_chess);
+
+
+//     chessDestroy(my_chess);
+//     return 0;
 // }
+
+// // static void selfTest_endTour(ChessSystem chess, int tour_id)
+// // {
+// //     ChessResult tour_end_rslt = chessEndTournament(chess, tour_id);
+
+// //     switch(tour_end_rslt)
+// //     {
+// //     case CHESS_SUCCESS:
+// //         printf(ANSI_COLOR_GREEN "tournament id = %d ended successfully", tour_id);
+// //         printf("\n" ANSI_COLOR_RESET);
+// //     break;
+        
+// //     case CHESS_NULL_ARGUMENT:
+// //         printf(ANSI_COLOR_RED "Error! NULL argument.\n" ANSI_COLOR_RESET);
+// //     break;
+
+// //     case CHESS_INVALID_ID:
+// //         printf(ANSI_COLOR_RED "Error! invalid id.\n" ANSI_COLOR_RESET);
+// //     break;
+
+// //     case CHESS_TOURNAMENT_NOT_EXIST:
+// //         printf(ANSI_COLOR_RED "Error! tournament not exist.\n" ANSI_COLOR_RESET);
+// //     break;
+
+// //     case CHESS_TOURNAMENT_ENDED:
+// //         printf( ANSI_COLOR_RED "Error! tournament already ended.\n" ANSI_COLOR_RESET);
+// //     break;
+
+// //     case CHESS_NO_GAMES:
+// //         printf( ANSI_COLOR_RED "Error! no games.\n" ANSI_COLOR_RESET);
+// //     break;
+
+// //     default:
+// //         printf(ANSI_COLOR_RED "Error! default error code!!!.\n" ANSI_COLOR_RESET);
+// //         break;
+// //     }
+// // }
 
 // static void selfTest_addGame(ChessSystem chess, int tour_id, int first, int second, Winner winner, int time)
 // {
+//     printf(ANSI_COLOR_BLUE "Adding new games...\n" ANSI_COLOR_RESET);
 //     ChessResult game_add_rslt = chessAddGame(chess, tour_id, first, second, winner, time);
 
 //     switch(game_add_rslt)
@@ -1411,52 +1478,52 @@ int main()
 // }
 
 
-// static void selfTest_PrintPlayerIds(ChessSystem chess)
-// {
-//     int i =0;
-//     MAP_FOREACH(int*, player_iterator, chess->players)
-//     {
-//         Player current_player = mapGet(chess->players, player_iterator);
+// // static void selfTest_PrintPlayerIds(ChessSystem chess)
+// // {
+// //     int i =0;
+// //     MAP_FOREACH(int*, player_iterator, chess->players)
+// //     {
+// //         Player current_player = mapGet(chess->players, player_iterator);
        
-//         int current_id = playerGetId(current_player);
+// //         int current_id = playerGetId(current_player);
         
-//         printf("player id num %d is %d\n", i, current_id);
-//         i++;
+// //         printf("player id num %d is %d\n", i, current_id);
+// //         i++;
+// //     }
+// // }
+
+// static void selfTest_addTournament(ChessSystem my_chess, int id, int maxGames, const char* loc)
+// {
+//     ChessResult tour_add_rslt = chessAddTournament(my_chess, id, maxGames, loc);
+
+//     switch (tour_add_rslt)
+//     {
+//     case CHESS_SUCCESS:
+//             printf(ANSI_COLOR_GREEN "Tournament Added successfully. id = %d", id);
+//             printf("\n" ANSI_COLOR_RESET);
+//         break;
+//     case CHESS_NULL_ARGUMENT:
+//         printf(ANSI_COLOR_RED "Error! NULL argument.\n" ANSI_COLOR_RESET);
+//     break;
+
+//         case CHESS_INVALID_ID:
+//         printf(ANSI_COLOR_RED "Error! invalid id.\n" ANSI_COLOR_RESET);
+//     break;
+
+//         case CHESS_INVALID_LOCATION:
+//         printf(ANSI_COLOR_RED "Error! invalid location.\n" ANSI_COLOR_RESET);
+//     break;
+
+//     case CHESS_INVALID_MAX_GAMES:
+//         printf( ANSI_COLOR_RED "Error! invalid max games per player.\n" ANSI_COLOR_RESET);
+//     break;
+
+//     case CHESS_TOURNAMENT_ALREADY_EXISTS:
+//         printf(ANSI_COLOR_RED "Error! tournament already exists.\n" ANSI_COLOR_RESET);
+//     break;
+
+//     default:
+//         printf(ANSI_COLOR_RED "Error! default error code!!!.\n" ANSI_COLOR_RESET);
+//         break;
 //     }
 // }
-
-static void selfTest_addTournament(ChessSystem my_chess, int id, int maxGames, const char* loc)
-{
-    ChessResult tour_add_rslt = chessAddTournament(my_chess, id, maxGames, loc);
-
-    switch (tour_add_rslt)
-    {
-    case CHESS_SUCCESS:
-            printf(ANSI_COLOR_GREEN "Tournament Added successfully. id = %d", id);
-            printf("\n" ANSI_COLOR_RESET);
-        break;
-    case CHESS_NULL_ARGUMENT:
-        printf(ANSI_COLOR_RED "Error! NULL argument.\n" ANSI_COLOR_RESET);
-    break;
-
-        case CHESS_INVALID_ID:
-        printf(ANSI_COLOR_RED "Error! invalid id.\n" ANSI_COLOR_RESET);
-    break;
-
-        case CHESS_INVALID_LOCATION:
-        printf(ANSI_COLOR_RED "Error! invalid location.\n" ANSI_COLOR_RESET);
-    break;
-
-    case CHESS_INVALID_MAX_GAMES:
-        printf( ANSI_COLOR_RED "Error! invalid max games per player.\n" ANSI_COLOR_RESET);
-    break;
-
-    case CHESS_TOURNAMENT_ALREADY_EXISTS:
-        printf(ANSI_COLOR_RED "Error! tournament already exists.\n" ANSI_COLOR_RESET);
-    break;
-
-    default:
-        printf(ANSI_COLOR_RED "Error! default error code!!!.\n" ANSI_COLOR_RESET);
-        break;
-    }
-}

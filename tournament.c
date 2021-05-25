@@ -24,9 +24,7 @@ Tournament tournamentCreate(int tournament_id, const char* tournament_location, 
     }
 
     Tournament tour_to_create = malloc(sizeof(*tour_to_create));
-    Map games = mapCreate(copyGameFunc, copyGameIdFunc, freeGameFunc, freeGameIdFunc, compareGameId);
-
-    if(tour_to_create == NULL || games == NULL)
+    if(tour_to_create == NULL)
     {
         return NULL;
     }
@@ -36,16 +34,14 @@ Tournament tournamentCreate(int tournament_id, const char* tournament_location, 
     tour_to_create->location = tournament_location;
     tour_to_create->max_games_per_player = max_games_per_player;
     tour_to_create->tournament_winner_id = PLAYER_INVALID_ID;
-    tour_to_create->game_list = games;
+    tour_to_create->game_list = NULL;
+    tour_to_create->num_different_players = 0;
 
     return tour_to_create;
 }
 
 void tournamentDestroy(Tournament tournament)
 {
-    mapClear(tournament->game_list);
-    mapDestroy(tournament->game_list);
-    free(tournament->game_list);
     free(tournament);
 }
 

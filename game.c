@@ -18,50 +18,6 @@ struct Game_t
 /* ************************ */
 
 
-MapDataElement copyGameFunc(MapDataElement game)
-{
-    int first = gameGetFirstPlayer((Game)game);
-    int second = gameGetSecondPlayer((Game)game);
-    Winner winner = gameGetWinner((Game)game);
-    int play_time = gameGetPlayTime((Game)game);
-    int game_id = gameGetId(game);
-
-    Game game_copy = gameCreate(first, second, winner, play_time, game_id);
-    if(game_copy == NULL)
-    {
-        return NULL;
-
-    }
-
-    return game_copy;
-}
-
-MapKeyElement copyGameIdFunc(MapKeyElement game_id)
-{
-    int* new_id = malloc(sizeof(int));
-    if(new_id == NULL)
-    {
-        return NULL;
-    }
-    *new_id = *( (int*)game_id );
-   return new_id;
-}
-
-void freeGameFunc(MapDataElement game)
-{
-    gameDestroy(game);
-}
-
-void freeGameIdFunc(MapKeyElement game_id)
-{
-    free((int*)game_id);
-}
-
-int compareGameId(MapKeyElement game_id_1, MapKeyElement game_id_2)
-{
-   return( (*((int*)game_id_1))  -  (*((int*)game_id_2)) );
-}
-
 
 /*SET*/
 
