@@ -58,11 +58,11 @@ bool testChessPrintLevelsAndTournamentStatistics()
     ASSERT_TEST(chessAddGame(chess, 1, 2, 4, FIRST_PLAYER, 3500) == CHESS_SUCCESS);
     ASSERT_TEST(chessAddGame(chess, 1, 3, 4, DRAW, 400) == CHESS_SUCCESS);
 
-    ASSERT_TEST(chessEndTournament(chess, 1) == CHESS_SUCCESS); //worked untill here... (include this line)
+    ASSERT_TEST(chessEndTournament(chess, 1) == CHESS_SUCCESS);
     
     ASSERT_TEST(chessSavePlayersLevels(chess, file_levels) == CHESS_SUCCESS);
 
-    //ASSERT_TEST(chessSaveTournamentStatistics(chess, "./tests/tournament_statistics_your_output.txt") == CHESS_SUCCESS);
+    ASSERT_TEST(chessSaveTournamentStatistics(chess, "./tests/tournament_statistics_your_output.txt") == CHESS_SUCCESS);
     
     chessDestroy(chess);
     fclose(file_levels);

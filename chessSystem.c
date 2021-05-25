@@ -89,6 +89,7 @@ static bool checkLetterIfCapital(char letter);
 static void setOpponentTheWinner(Game game, int player_id);
 static int sortMatrixByCol(int** mat, int* len, int col, bool increasing);
 static void freePlayersInfo(int** players_info, int len);
+static void freePlayersInfoDouble(double** players_info, int len);
 static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament);
 static void initializePlayerIdCol(int** players_info, int* hist_of_players_id, int num_of_players);
 static void initalizePlayerInfo(int** players_info, int* hist_of_players_id, int num_of_players, int num_cols);
@@ -105,9 +106,9 @@ static bool noTournamentsEnded(ChessSystem chess);
 static double calcPlayerLevel(ChessSystem chess, int player_id);
 static void outOfMemoryError(ChessSystem chess);
 static bool allocatePlayersInfoDouble(double** players_info, int num_of_players, int num_cols);
-static void setPlayersInfoInMat(ChessSystem chess, double** players_info);
+static void setPlayersInfoInMat(ChessSystem chess, double** players_info, int num_of_players);
 static void initalizePlayerInfoDouble(double** players_info, int num_of_players, int num_cols);
-static void sortDoubleMatrixByCol(double** mat, int len, int col, bool increasing);
+static void sortDoubleMatrixByCol(double** mat, int start, int end, int col, bool increasing);
 static bool gameAlreadyExists(ChessSystem chess, Tournament tournament, int first_player, int second_player);
 static int playerCountGamesInTournament(Tournament tournament, int player_id);
 static void addPlayersToPlayersList(ChessSystem chess, int first_player, int second_player);
@@ -174,35 +175,36 @@ ChessResult chessSavePlayersLevels (ChessSystem chess, FILE* file)
     bool allocate_result = allocatePlayersInfoDouble(players_info, num_of_players, PLAY_MAT_NUM_COLS);
     if(!allocate_result)
     {
-        freePlayersInfo(players_info, num_of_players);
+        freePlayersInfoDouble(players_info, num_of_players);
         outOfMemoryError(chess);
     }
 
 
     initalizePlayerInfoDouble(players_info, num_of_players, PLAY_MAT_NUM_COLS);
     
-    setPlayersInfoInMat(chess, players_info);
+    setPlayersInfoInMat(chess, players_info, num_of_players);
 
-    sortDoubleMatrixByCol(players_info, num_of_players, PLAYER_POINTS_COL, false);
+    sortDoubleMatrixByCol(players_info, 0, num_of_players - 1, PLAYER_POINTS_COL, false);
 
     int start = 0, end = 0;
-    int current_value = 0;
+
     while(start < num_of_players)
     {
-        if(end < num_of_players)
+        if(end == num_of_players)
         {
-            current_value = players_info[end][PLAYER_POINTS_COL];
-        
-            if(players_info[start][PLAYER_POINTS_COL] == current_value)
-            {
-                end++;
-                continue;
-            }
+            sortDoubleMatrixByCol(players_info, start, end-1, PLAYER_ID_COL, true);
+            break;
         }
 
-        int section_len = end - start;
-        sortDoubleMatrixByCol(players_info + start, section_len, PLAYER_ID_COL, true);
-        start = end;
+        if(players_info[start][PLAYER_POINTS_COL] == players_info[end][PLAYER_POINTS_COL])
+        {
+                end++;
+        }
+        else
+        {
+            sortDoubleMatrixByCol(players_info, start, end-1, PLAYER_ID_COL, true);
+            start = end;
+        }
     }
 
     for (int i = 0; i < num_of_players; i++)
@@ -210,7 +212,7 @@ ChessResult chessSavePlayersLevels (ChessSystem chess, FILE* file)
         fprintf(file, "%d %.2f\n", (int) players_info[i][PLAYER_ID_COL], players_info[i][PLAYER_POINTS_COL]);
     }
 
-    freePlayersInfo(players_info, num_of_players);
+    freePlayersInfoDouble(players_info, num_of_players);
 
     return CHESS_SUCCESS;
     
@@ -222,7 +224,7 @@ static void initalizePlayerInfoDouble(double** players_info, int num_of_players,
     {
         for (int i = 0; i < num_cols; i++)
         {
-            players_info[p][i] = 0;
+            players_info[p][i] = 0.0;
         }
     }
 }
@@ -247,10 +249,9 @@ static bool allocatePlayersInfoDouble(double** players_info, int num_of_players,
     return true;
 }
 
-static void setPlayersInfoInMat(ChessSystem chess, double** players_info)
+static void setPlayersInfoInMat(ChessSystem chess, double** players_info, int num_of_players)
 {
     int i = 0;
-    int num_of_players = mapGetSize(chess->players);
 
     MAP_FOREACH(int*, player_iterator, chess->players)
     {
@@ -351,14 +352,14 @@ static int tournamentGetLongestGameTime(Tournament tournament)
 
 static double tournamentGetAverageGameTime(Tournament tournament)
 {
-    double game_avg = 0;
+    double game_avg = 0.0;
     int total_games = tournamentGetGamesPlayed(tournament);
     
     MAP_FOREACH(int*, game_id_iterator, tournamentGetGames(tournament))
     {
         Game current_game = mapGet(tournamentGetGames(tournament), game_id_iterator);
         int current_game_time = gameGetPlayTime(current_game);
-        game_avg += (current_game_time / total_games);
+        game_avg += ((double) current_game_time / total_games);
         free(game_id_iterator);
     }
 
@@ -431,7 +432,6 @@ ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
 
     if(gameAlreadyExists(chess, tournament, first_player, second_player) == true)
     {
-        printf("gameAlready..\n");
         return CHESS_GAME_ALREADY_EXISTS;
     }
 
@@ -461,15 +461,15 @@ ChessResult chessAddGame(ChessSystem chess, int tournament_id, int first_player,
     
 
 
+
     addPlayersToPlayersList(chess, first_player, second_player);
-    updateTournamentStats(chess, tournament);
     updatePlayerStats(chess, new_game);
 
     gameDestroy(new_game);
-
-    
-
+    updateTournamentStats(chess, tournament);
     return CHESS_SUCCESS;
+
+
 }
 
 
@@ -496,7 +496,6 @@ static void addPlayersToPlayersList(ChessSystem chess, int first_player, int sec
         mapPut(chess->players, &second_player, player2);
         playerDestroy(player2);
     }
-
 }
 
 /*update player stats in the players map*/
@@ -547,10 +546,12 @@ static void updatePlayerStats(ChessSystem chess, Game game)
 
     double new_player1_avg_play_time = ((player1_avg_play_time * (player1_total_games -1)) + game_play_time)
                                          / player1_total_games;
+
     playerSetAvgPlayTime(player1, new_player1_avg_play_time);
 
     double new_player2_avg_play_time = ((player2_avg_play_time * (player2_total_games -1)) + game_play_time)
                                         / player2_total_games;
+
     playerSetAvgPlayTime(player2, new_player2_avg_play_time);
 }
 
@@ -562,8 +563,8 @@ static void updateTournamentStats(ChessSystem chess , Tournament tournament)
         return;
     }
 
-    int max_length = mapGetSize(chess->players);
-    int* hist_players = malloc(sizeof(*hist_players)*max_length);
+    int max_length = mapGetSize(chess->players) * 2;
+    int* hist_players = malloc(sizeof(*hist_players) * max_length);
     if(hist_players == NULL)
     {
         outOfMemoryError(chess);
@@ -575,6 +576,9 @@ static void updateTournamentStats(ChessSystem chess , Tournament tournament)
     }
 
     int num_of_players = initializeHist(hist_players, tournament, max_length);
+
+    // printf("\ndiff players = %d\n", tournamentGetNumDiffPlayers(tournament));
+    // printf("NEW diff players = %d\n\n", num_of_players);
 
     tournamentSetNumDiffPlayers(tournament, num_of_players);
 
@@ -810,8 +814,6 @@ ChessResult chessEndTournament(ChessSystem chess, int tournament_id)
 
     int winner_id = calcTournamentWinnerId(chess, current_tournament);
     
-    return CHESS_SUCCESS;
-
 
     tournamentSetWinnderId(current_tournament, winner_id);
     tournamentSetFinishedState(current_tournament, true);
@@ -826,6 +828,7 @@ ChessResult chessEndTournament(ChessSystem chess, int tournament_id)
 /* return the id of the tournament winner. */
 static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
 {
+
     int num_of_players = tournamentGetNumDiffPlayers(tournament);
 
     int** players_info = (int**) malloc(sizeof(int*) * num_of_players);
@@ -849,12 +852,19 @@ static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
         outOfMemoryError(chess);
     }
 
-    
-    initalizePlayerInfo(players_info, hist_of_players_id, num_of_players, PLAYER_STATS_COLS);
-    initializeHist(hist_of_players_id, tournament, num_of_players);
-    initializePlayerIdCol(players_info, hist_of_players_id, num_of_players);
 
-    free(hist_of_players_id);
+
+    initalizePlayerInfo(players_info, hist_of_players_id, num_of_players, PLAYER_STATS_COLS);
+
+
+    for(int i = 0; i < num_of_players; i++)
+    {
+        hist_of_players_id[i] = PLAYER_INVALID_ID;
+    }
+
+    initializeHist(hist_of_players_id, tournament, num_of_players);
+
+    initializePlayerIdCol(players_info, hist_of_players_id, num_of_players);
 
     sumWinLoseDraw(players_info, num_of_players, tournament);
 
@@ -864,8 +874,9 @@ static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
                                              DRAW_POINTS * players_info[i][PLAYER_DRAWS_COL];
     }
 
-    int winner_id = 2;
+    int winner_id = 0;
 
+    free(hist_of_players_id);
 
     if(sortMatrixByCol(players_info, &num_of_players, PLAYER_POINTS_COL, false) == 1)
     {
@@ -899,6 +910,15 @@ static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
 }
 
 static void freePlayersInfo(int** players_info, int len)
+{
+    for (int i = 0; i < len; i++)
+    {
+        free(players_info[i]);
+    }
+    free(players_info);
+}
+
+static void freePlayersInfoDouble(double** players_info, int len)
 {
     for (int i = 0; i < len; i++)
     {
@@ -989,11 +1009,11 @@ static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
     return length;
 }
 
-    static void sortDoubleMatrixByCol(double** mat, int len, int col, bool increasing)
+static void sortDoubleMatrixByCol(double** mat, int start, int end, int col, bool increasing)
 {
-    for (int i = 0; i < len; i++)
+    for (int i = start; i <= end; i++)
     {
-        for (int t = 1; t < len - 1; t++)
+        for (int t = start; t <= end - 1; t++)
         {
             if(increasing)
             {
@@ -1084,6 +1104,7 @@ static void sumWinLoseDraw(int** players_info, int num_of_players, Tournament to
     }
 }
 
+
 static int initializeHist(int* hist, Tournament tournament, int hist_len)
 {
     int i = 0;
@@ -1093,7 +1114,7 @@ static int initializeHist(int* hist, Tournament tournament, int hist_len)
         int current_first = gameGetFirstPlayer(current_game);
         int current_second = gameGetSecondPlayer(current_game);
 
-        if(hist[i] == PLAYER_INVALID_ID)
+        if(i < hist_len && hist[i] == PLAYER_INVALID_ID)
         {
             if(!existInHist(hist, hist_len, current_first))
             {
@@ -1122,7 +1143,6 @@ static bool existInHist(int* hist, int hist_len, int value)
             return true;
         }
     }
-
     return false;
 }
 
