@@ -648,14 +648,14 @@ void chessDestroy(ChessSystem chess)
 
     mapDestroy(chess->players);
 
-    MAP_FOREACH(int*, tour_iterator, chess->tournaments)
-    {
-        Tournament current_tour = mapGet(chess->tournaments, tour_iterator);
+    // MAP_FOREACH(int*, tour_iterator, chess->tournaments)
+    // {
+    //     Tournament current_tour = mapGet(chess->tournaments, tour_iterator);
 
-        mapDestroy(tournamentGetGames(current_tour));
+    //     mapDestroy(tournamentGetGames(current_tour));
 
-        free(tour_iterator);
-    }
+    //     free(tour_iterator);
+    // }
 
     mapDestroy(chess->tournaments);
     free(chess);
@@ -700,6 +700,20 @@ ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
 
     tournamentSetGameList(new_tournament, games);
 
+    /*changed here*/
+
+    // Game game = gameCreate(100,200,FIRST_PLAYER,500,1);
+    // int gameid =1;
+    // mapPut(games,&gameid, game);
+    
+    // gameDestroy(game);
+
+    //now there should be memory leak in map put becuase the freeTour dont work properly
+
+    /*changed here*/
+
+
+
     MapResult putResult = mapPut(chess->tournaments, &tournament_id, new_tournament);
 
     if(putResult != MAP_SUCCESS)
@@ -709,7 +723,8 @@ ChessResult chessAddTournament (ChessSystem chess, int tournament_id,
     }
 
     tournamentDestroy(new_tournament);
-    mapDestroy(games);
+    /*changed here*/
+    // mapDestroy(games);
 
     return CHESS_SUCCESS;
 }
@@ -733,7 +748,8 @@ ChessResult chessRemoveTournament (ChessSystem chess, int tournament_id)
     }
 
     /* Remove all of the games in the tournament */
-    mapDestroy(tournamentGetGames(tournament_to_remove));
+    //changed here
+    //mapDestroy(tournamentGetGames(tournament_to_remove));
     
     /* Remove the tournament from the list and deallocate the memory. */
     mapRemove(chess->tournaments, &tournament_id);
@@ -1371,6 +1387,7 @@ static void freeGameFunc(MapDataElement game)
 
 // int main()
 // {
+    
 //     printf(ANSI_COLOR_BLUE "Test started...\n" ANSI_COLOR_RESET);
 
 //     ChessSystem my_chess;
@@ -1387,13 +1404,24 @@ static void freeGameFunc(MapDataElement game)
 //     }
 
 
+
+    
+    
 //     selfTest_addTournament(my_chess, 1, 4, "London");
 
 //     selfTest_addTournament(my_chess, 2, 5, "London");
 
 //     selfTest_addTournament(my_chess, 3, 10, "Paris");
 
-//     selfTest_addGame(my_chess, 1, 87, 55, FIRST_PLAYER, 40);
+    
+
+//     selfTest_addGame(my_chess, 1, 87, 1, FIRST_PLAYER, 40);
+//     selfTest_addGame(my_chess, 1, 87, 2, FIRST_PLAYER, 40);
+//     selfTest_addGame(my_chess, 1, 87, 3, FIRST_PLAYER, 40);
+//     selfTest_addGame(my_chess, 1, 87, 4, FIRST_PLAYER, 40);
+//     selfTest_addGame(my_chess, 1, 87, 5, FIRST_PLAYER, 40);
+
+
 
 //     chessDestroy(my_chess);
 //     return 0;
@@ -1515,6 +1543,9 @@ static void freeGameFunc(MapDataElement game)
 // static void selfTest_addTournament(ChessSystem my_chess, int id, int maxGames, const char* loc)
 // {
 //     ChessResult tour_add_rslt = chessAddTournament(my_chess, id, maxGames, loc);
+//     Tournament tourny = mapGet(my_chess->tournaments, &id);
+    
+//     printf("\ntour %d location is %s\n", id,tournamentGetLocation(tourny));
 
 //     switch (tour_add_rslt)
 //     {

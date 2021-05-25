@@ -2,7 +2,7 @@ CC = gcc
 OBJS = chessSystem.o player.o map.o node.o tournament.o game.o chessSystemTestsExample.o
 EXEC = chessEXE
 DEBUG_FLAG = -pedantic-errors -DNDEBUG
-COMP_FLAG = -std=c99 -Wall -Werror
+COMP_FLAG = -std=c99 -Wall -Werror -g
 
 $(EXEC) : $(OBJS)
 	$(CC) $(DEBUG_FLAG) $(OBJS) -o $@

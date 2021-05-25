@@ -42,6 +42,10 @@ Tournament tournamentCreate(int tournament_id, const char* tournament_location, 
 
 void tournamentDestroy(Tournament tournament)
 {
+    //changed here
+    Map games = tournamentGetGames(tournament);
+    mapDestroy(games);
+    //changed here
     free(tournament);
 }
 
