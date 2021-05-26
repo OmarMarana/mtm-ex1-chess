@@ -1,13 +1,7 @@
 #ifndef GAME_H_
 #define GAME_H_
-
-#ifndef _CHESSSYSTEM_H
 #include "chessSystem.h"
-#endif
-
-#ifndef MAP_H_
 #include "map.h"
-#endif
 
 
 

@@ -114,6 +114,9 @@ static int playerCountGamesInTournament(Tournament tournament, int player_id);
 static void addPlayersToPlayersList(ChessSystem chess, int first_player, int second_player);
 static void updatePlayerStats(ChessSystem chess, Game game);
 static void updateTournamentStats(ChessSystem chess , Tournament tournament);
+static void updatePlayersAfterTourRemove(ChessSystem chess, Tournament tournament);
+static void updatePlayerStatsAfterTourRemove(Player player, int play_time_remove,
+                                              Winner game_winner, Winner player_role);
 
 
 /* ************************* */
@@ -279,10 +282,12 @@ static double calcPlayerLevel(ChessSystem chess, int player_id)
     int draws = playerGetGameStatics(player, PLAYER_DRAWS);
 
     int total_games = wins + losses + draws;
-    // if(total_games == 0)
-    // {
-    //     return 0;
-    // }
+
+    /* if a player doesnt have any games (tournament removed...), return level 0 ? (undefined in pdf) */
+    if(total_games == 0)
+    {
+        return 0;
+    }
 
     double player_level =((PLAYER_WINS_FACTOR * wins) - (PLAYER_LOSE_FACTOR * losses) + (PLAYER_DRAW_FACTOR * draws))
                          / (double) total_games;
@@ -577,9 +582,6 @@ static void updateTournamentStats(ChessSystem chess , Tournament tournament)
 
     int num_of_players = initializeHist(hist_players, tournament, max_length);
 
-    // printf("\ndiff players = %d\n", tournamentGetNumDiffPlayers(tournament));
-    // printf("NEW diff players = %d\n\n", num_of_players);
-
     tournamentSetNumDiffPlayers(tournament, num_of_players);
 
     free(hist_players);
@@ -732,6 +734,11 @@ ChessResult chessRemoveTournament (ChessSystem chess, int tournament_id)
         return CHESS_TOURNAMENT_NOT_EXIST;
     }
 
+
+    updatePlayersAfterTourRemove(chess, tournament_to_remove);
+    //remove a player from the players list if he doesn't have any games in other tournaments ???*/
+
+
     /* Remove all of the games in the tournament */
     mapDestroy(tournamentGetGames(tournament_to_remove));
     
@@ -739,6 +746,66 @@ ChessResult chessRemoveTournament (ChessSystem chess, int tournament_id)
     mapRemove(chess->tournaments, &tournament_id);
 
     return CHESS_SUCCESS;
+}
+
+static void updatePlayersAfterTourRemove(ChessSystem chess, Tournament tournament)
+{
+    Map games = tournamentGetGames(tournament);
+    Map players = chess->players;
+
+    MAP_FOREACH(int*, game_iterator, games)
+    {
+        Game current_game = mapGet(games, game_iterator);
+        int first_id = gameGetFirstPlayer(current_game);
+        int second_id = gameGetSecondPlayer(current_game);
+        Winner current_winner = gameGetWinner(current_game);
+        int game_play_time = gameGetPlayTime(current_game);
+
+        Player first = mapGet(players, &first_id);
+        Player second = mapGet(players, &second_id);
+
+        updatePlayerStatsAfterTourRemove(first, game_play_time, current_winner, FIRST_PLAYER);
+        updatePlayerStatsAfterTourRemove(second, game_play_time, current_winner, SECOND_PLAYER);
+
+        free(game_iterator);
+    }
+}
+
+static void updatePlayerStatsAfterTourRemove(Player player, int play_time_remove,
+                                              Winner game_winner, Winner player_role)
+{
+    int total_games = playerGetTotalGamesPlayed(player);
+    double new_play_time = playerGetAvgPlayTime(player);
+    if(total_games <= 1)
+    {
+        new_play_time = 0.0;
+    }
+    else
+    {
+        new_play_time *= total_games;
+        new_play_time -= play_time_remove;
+        new_play_time /= (total_games-1);
+    }
+
+    playerSetAvgPlayTime(player, new_play_time);
+
+    int wins = playerGetGameStatics(player, PLAYER_WINS);
+    int losses = playerGetGameStatics(player, PLAYER_LOSSES);
+    int draws = playerGetGameStatics(player, PLAYER_DRAWS);
+
+
+    if(player_role == game_winner)
+    {
+        playerSetGameStatics(player, PLAYER_WINS, wins - 1);
+    }
+    else if(game_winner != DRAW)
+    {
+        playerSetGameStatics(player, PLAYER_LOSSES, losses - 1);
+    }
+    else
+    {
+        playerSetGameStatics(player, PLAYER_DRAWS, draws - 1);
+    }
 }
 
 ChessResult chessRemovePlayer(ChessSystem chess, int player_id)

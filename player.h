@@ -29,5 +29,6 @@ int playerGetId(Player player);
 double playerGetLevel(Player player);
 int playerGetGameStatics(Player player, PlayerStaticsMode mode);
 double playerGetAvgPlayTime(Player player);
+int playerGetTotalGamesPlayed(Player player);
 
 #endif

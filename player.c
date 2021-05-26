@@ -150,3 +150,13 @@ double playerGetAvgPlayTime(Player player)
 
     return player->average_play_time;
 }
+
+int playerGetTotalGamesPlayed(Player player)
+{
+    if(player == NULL)
+    {
+        return PLAYER_NULL_ARGUMENT;
+    }
+    
+    return (player->game_wins + player->game_losses + player->game_draws);
+}

@@ -1,32 +1,20 @@
-CC = gcc
-OBJS = chessSystem.o player.o map.o node.o tournament.o game.o chessSystemTestsExample.o
-EXEC = chessEXE
-DEBUG_FLAG = -pedantic-errors -DNDEBUG
-COMP_FLAG = -std=c99 -Wall -Werror
+CC=gcc
+OBJS=chessSystem.o game.o player.o tournament.o tests/chessSystemTestsExample.o
+EXEC=chess
+OBJ=chess.o
+DEBUG=-g -DNDEBUG# now empty, assign -g for debug
+CFLAGS=-std=c99 -Wall -pedantic-errors -Werror $(DEBUG)
 
-$(EXEC) : $(OBJS)
-	$(CC) $(DEBUG_FLAG) $(OBJS) -o $@
+$(EXEC) : $(OBJ)
+	$(CC) $(CFLAG) $(OBJ) -o $@ -L. -lmap
+$(OBJ): $(OBJS)
+	ld -r -o $(OBJ) $(OBJS)
 
-chessSystem.o : chessSystem.c chessSystem.h map.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
-
-player.o : player.c player.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
-
-game.o : game.c game.h chessSystem.h map.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
-
-tournament.o : tournament.c tournament.h game.h map.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
-
-map.o : map.c map.h node.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
-
-node.o : node.c node.h map.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
-
-chessSystemTestsExample.o : chessSystemTestsExample.c test_utilities.h chessSystem.h
-	$(CC) -c $(DEBUG_FLAG) $(COMP_FLAG) $*.c
+chessSystemTestsExample.o: tests/chessSystemTestsExample.c chessSystem.h test_utilities.h
+chessSystem.o: chessSystem.c chessSystem.h map.h tournament.h
+tournament.o: tournament.c tournament.h map.h
+game.o: game.h game.c chessSystem.h map.h
+player.o: player.c player.h
 
 clean:
-	rm -f $(OBJS) $(EXEC)
+	rm -f $(OBJS) $(OBJ) $(EXEC)
