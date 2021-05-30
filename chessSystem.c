@@ -86,7 +86,7 @@ static void freeGameFunc(MapDataElement game);
 static bool checkLocationValidation(const char* tournament_location);
 static bool checkLetterIfNonCapitalOrSpace(char letter);
 static bool checkLetterIfCapital(char letter);
-static void setOpponentTheWinner(Game game, int player_id);
+static void setOpponentTheWinner(ChessSystem chess, Game game, int player_id);
 static int sortMatrixByCol(int** mat, int* len, int col, bool increasing);
 static void freePlayersInfo(int** players_info, int len);
 static void freePlayersInfoDouble(double** players_info, int len);
@@ -852,7 +852,7 @@ ChessResult chessRemovePlayer(ChessSystem chess, int player_id)
                 gameRemoveSecond(current_game);
             }
 
-            setOpponentTheWinner(current_game, player_id);
+            setOpponentTheWinner(chess, current_game, player_id);
             free(game_iterator);
         }
         free(tournament_iterator);
@@ -945,6 +945,8 @@ static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
 
     initializePlayerIdCol(players_info, hist_of_players_id, num_of_players);
 
+    free(hist_of_players_id);
+
     sumWinLoseDraw(players_info, num_of_players, tournament);
 
     for (int i = 0; i < num_of_players; i++)
@@ -955,7 +957,6 @@ static int calcTournamentWinnerId(ChessSystem chess, Tournament tournament)
 
     int winner_id = 0;
 
-    free(hist_of_players_id);
 
     if(sortMatrixByCol(players_info, &num_of_players, PLAYER_POINTS_COL, false) == 1)
     {
@@ -1054,9 +1055,10 @@ static bool allocatePlayersInfo(int** players_info, int* hist_of_players_id, int
 static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
 {
     int length = *len;
+
     for (int i = 0; i < length; i++)
     {
-        for (int t = 1; t < length - 1; t++)
+        for (int t = 0; t < length - 1; t++)
         {
             if(increasing)
             {
@@ -1083,8 +1085,8 @@ static int sortMatrixByCol(int** mat, int* len, int col, bool increasing)
             length--;
         }
     }
+    
     *len = length;
-
     return length;
 }
 
@@ -1152,8 +1154,11 @@ static void sumWinLoseDraw(int** players_info, int num_of_players, Tournament to
             hist_index = getHistId(players_info, current_first_id, num_of_players);  //first
             players_info[hist_index][PLAYER_WINS_COL] ++;
 
-            hist_index = getHistId(players_info, current_second_id, num_of_players); //second
-            players_info[hist_index][PLAYER_LOSSES_COL] ++;
+            if(!gameSecondRemoved(current_game))
+            {
+                hist_index = getHistId(players_info, current_second_id, num_of_players); //second
+                players_info[hist_index][PLAYER_LOSSES_COL] ++;
+            }
 
             break;
         
@@ -1162,8 +1167,11 @@ static void sumWinLoseDraw(int** players_info, int num_of_players, Tournament to
             hist_index = getHistId(players_info, current_second_id, num_of_players);  //second
             players_info[hist_index][PLAYER_WINS_COL] ++;
 
-            hist_index = getHistId(players_info, current_first_id, num_of_players); //first
-            players_info[hist_index][PLAYER_LOSSES_COL] ++;
+            if(!gameFirstRemoved(current_game))
+            {
+                hist_index = getHistId(players_info, current_first_id, num_of_players); //first
+                players_info[hist_index][PLAYER_LOSSES_COL] ++;
+            }
 
             break;
 
@@ -1239,17 +1247,59 @@ static int getHistId(int** players_info, int player_id, int num_of_players)
 
 /* set the opponent of the player(with 'player_id' id) the winner of the game.
    if the player didn't play in the game, nothing will change. */
-static void setOpponentTheWinner(Game game, int player_id)
+static void setOpponentTheWinner(ChessSystem chess, Game game, int player_id)
 {
-    if(game == NULL || player_id <= 0)
+    if(game == NULL || player_id <= 0 || chess == NULL)
     {
         return;
     }
-
+    Winner game_winner = gameGetWinner(game);
+    Player opponent;
+    int opponent_id = 0;
     if(gameGetFirstPlayer(game) == player_id)
     {
+        opponent_id = gameGetSecondPlayer(game);
+        opponent = mapGet(chess->players, &opponent_id);
         gameSetWinner(game, SECOND_PLAYER);
     }
+    else if(gameGetSecondPlayer(game) == player_id)
+    {
+        opponent_id = gameGetFirstPlayer(game);
+        opponent = mapGet(chess->players, &opponent_id);
+        gameSetWinner(game, FIRST_PLAYER);
+    }
+
+    int opponent_wins = playerGetGameStatics(opponent, PLAYER_WINS);
+    int opponent_draws = playerGetGameStatics(opponent, PLAYER_DRAWS);
+    int opponent_losses = playerGetGameStatics(opponent, PLAYER_LOSSES);
+
+    switch (game_winner)
+    {
+    case FIRST_PLAYER:
+        if(gameGetFirstPlayer(game) == player_id)
+        {
+            playerSetGameStatics(opponent, PLAYER_LOSSES, opponent_losses-1);
+            playerSetGameStatics(opponent, PLAYER_WINS, opponent_wins+1);
+        }
+        break;
+
+    case SECOND_PLAYER:
+        if(gameGetSecondPlayer(game) == player_id)
+        {
+            playerSetGameStatics(opponent, PLAYER_LOSSES, opponent_losses-1);
+            playerSetGameStatics(opponent, PLAYER_WINS, opponent_wins+1);
+        }
+    break;
+
+    case DRAW:
+            playerSetGameStatics(opponent, PLAYER_DRAWS, opponent_draws-1);
+            playerSetGameStatics(opponent, PLAYER_WINS, opponent_wins+1);
+        break;
+
+    default:
+        break;
+    }
+
 
     if(gameGetSecondPlayer(game) == player_id)
     {
