@@ -1254,7 +1254,7 @@ static void setOpponentTheWinner(ChessSystem chess, Game game, int player_id)
         return;
     }
     Winner game_winner = gameGetWinner(game);
-    Player opponent;
+    Player opponent = NULL;
     int opponent_id = 0;
     if(gameGetFirstPlayer(game) == player_id)
     {

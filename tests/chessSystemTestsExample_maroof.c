@@ -516,7 +516,6 @@ bool oneMoreTestJustYouKnowToMakeSureEveryThingWorksFine_maaroof() {
 
 
     //tournament_3
-    printf("\n\ntour3\n\n");
     ASSERT_TEST(chessAddGame(sys1, 3, player_2, player_1, FIRST_PLAYER, 1) == CHESS_SUCCESS);
     ASSERT_TEST(chessAddGame(sys1, 3, player_2, player_3, SECOND_PLAYER, 2) == CHESS_SUCCESS);
     ASSERT_TEST(chessAddGame(sys1, 3, player_2, player_4, SECOND_PLAYER, 3) == CHESS_SUCCESS);
@@ -709,7 +708,7 @@ int main(int argc, char *argv[]) {
     if (argc == 1)
     {
 
-        for (int test_idx = 12; test_idx < NUMBER_TESTS-2; test_idx++) {
+        for (int test_idx = 0; test_idx < NUMBER_TESTS; test_idx++) {
             RUN_TEST(tests[test_idx], testNames[test_idx]);
         }
         return 0;
