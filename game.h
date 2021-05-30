@@ -25,6 +25,8 @@ int gameGetSecondPlayer(Game game);
 Winner gameGetWinner(Game game);
 int gameGetPlayTime(Game game);
 int gameGetId(Game game);
+bool gameFirstRemoved(Game game);
+bool gameSecondRemoved(Game game);
 
 
 /*Set*/
@@ -33,6 +35,8 @@ void gameSetSecondPlayer(Game game, int second_player);
 void gameSetWinner(Game game, Winner game_winner);
 void gameSetPlayTime(Game game,int play_time);
 void gameSetId(Game game,int game_id);
+void gameRemoveFirst(Game game);
+void gameRemoveSecond(Game game);
 
 
 #endif /* GAME_H_ */

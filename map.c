@@ -311,4 +311,5 @@ MapResult mapClear(Map map)
     nodeDestroy(map->elements_pair, map->freeDataFucntion, map->freeKeyFucntion);
 
     return MAP_SUCCESS;
+
 }

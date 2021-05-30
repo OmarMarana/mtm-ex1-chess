@@ -9,6 +9,8 @@ struct Game_t
     int second_player;
     Winner game_winner;
     int play_time;
+    bool first_removed;
+    bool second_removed;
 };
 
 
@@ -42,6 +44,16 @@ void gameSetPlayTime(Game game,int play_time)
     game->play_time = play_time;
 }
 
+void gameRemoveFirst(Game game)
+{
+    game->first_removed = true;
+}
+
+void gameRemoveSecond(Game game)
+{
+    game->second_removed = true;
+}
+
 
 
 /*GET*/
@@ -73,6 +85,16 @@ int gameGetId(Game game)
     return game->game_id;
 }
 
+bool gameFirstRemoved(Game game)
+{
+    return game->first_removed;
+}
+
+bool gameSecondRemoved(Game game)
+{
+    return game->second_removed;
+}
+
 
 /*gameCreate*/
 Game gameCreate(int first_player, int second_player, Winner game_winner, int play_time, int game_id)
@@ -88,6 +110,8 @@ Game gameCreate(int first_player, int second_player, Winner game_winner, int pla
     new_game->game_winner = game_winner;
     new_game->play_time = play_time;
     new_game->game_id = game_id;
+    new_game->first_removed = false;
+    new_game->second_removed = false;
 
     return new_game;
 }
